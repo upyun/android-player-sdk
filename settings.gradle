@@ -1,0 +1,1 @@
+include ':upyun-player-demo', ':ijkplayer-java', ':ijkplayer-armv7a', ':upplayer'
