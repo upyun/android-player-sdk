@@ -17,28 +17,43 @@
 package com.upyun.upplayer.widget;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.RelativeLayout;
+
+import com.upyun.upplayer.Metrics;
+import com.upyun.upplayer.NetStateUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
 public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
     private String TAG = "IjkVideoView";
@@ -65,7 +80,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     // All the stuff we need for playing and showing a video
     private IRenderView.ISurfaceHolder mSurfaceHolder = null;
-    private IMediaPlayer mMediaPlayer = null;
+    private IjkMediaPlayer mMediaPlayer = null;
     // private int         mAudioSession;
     private int mVideoWidth;
     private int mVideoHeight;
@@ -96,6 +111,16 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private int mVideoSarNum;
     private int mVideoSarDen;
 
+    private boolean isfullState;
+    private ViewGroup.LayoutParams mRawParams;
+    private List<Long> blockTimes = new ArrayList<>();
+    private long bufferEndTime;
+    private long bufferStartTime;
+    private Metrics metrics;
+
+    public boolean isfullState() {
+        return isfullState;
+    }
 
     public UpVideoView(Context context) {
         super(context);
@@ -228,6 +253,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     @TargetApi(Build.VERSION_CODES.M)
     private void openVideo() {
+
+        metrics = new Metrics();
+        metrics.setNonSmoothTimes(blockTimes);
         if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
             return;
@@ -327,6 +355,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
             mCurrentState = STATE_PREPARED;
+            mMediaPlayer.pause();
+            handler.sendEmptyMessage(CACHE_TIME);
 
             // Get the capabilities of the player for this stream
             // REMOVED: Metadata
@@ -406,9 +436,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            bufferStartTime = System.currentTimeMillis();
+                            if (bufferEndTime != 0) {
+                                blockTimes.add(bufferEndTime - bufferStartTime);
+                            }
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            bufferEndTime = System.currentTimeMillis();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH:
@@ -696,6 +731,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public void start() {
         if (isInPlaybackState()) {
+            mRenderView.getView().setBackground(null);
             mMediaPlayer.start();
             mCurrentState = STATE_PLAYING;
         }
@@ -785,7 +821,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     @Override
     public int getAudioSessionId() {
-        return 0;
+        return mMediaPlayer.getAudioSessionId();
     }
 
     // REMOVED: getAudioSessionId();
@@ -809,7 +845,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             IRenderView.AR_16_9_FIT_PARENT,
             IRenderView.AR_4_3_FIT_PARENT};
     private int mCurrentAspectRatioIndex = 0;
-    private int mCurrentAspectRatio = s_allAspectRatio[0];
+    private int mCurrentAspectRatio = s_allAspectRatio[1];
 
     public int toggleAspectRatio() {
         mCurrentAspectRatioIndex++;
@@ -819,5 +855,106 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (mRenderView != null)
             mRenderView.setAspectRatio(mCurrentAspectRatio);
         return mCurrentAspectRatio;
+    }
+
+    public ITrackInfo[] getTrackInfo() {
+        if (mMediaPlayer == null)
+            return null;
+
+        return mMediaPlayer.getTrackInfo();
+    }
+
+    public void selectTrack(int stream) {
+        MediaPlayerCompat.selectTrack(mMediaPlayer, stream);
+    }
+
+    public void deselectTrack(int stream) {
+        MediaPlayerCompat.deselectTrack(mMediaPlayer, stream);
+    }
+
+    public int getSelectedTrack(int trackType) {
+        return MediaPlayerCompat.getSelectedTrack(mMediaPlayer, trackType);
+    }
+
+    public void fullScreen(Activity activity) {
+        if (!isfullState) {
+            if (activity.getRequestedOrientation() != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            }
+            activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            DisplayMetrics metrics = new DisplayMetrics();
+            activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            mRawParams = getLayoutParams();
+            ViewGroup.LayoutParams fullParams;
+            if (mRawParams instanceof RelativeLayout.LayoutParams) {
+                fullParams = new RelativeLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else if (mRawParams instanceof LinearLayout.LayoutParams) {
+                fullParams = new LinearLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else if (mRawParams instanceof FrameLayout.LayoutParams) {
+                fullParams = new FrameLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else {
+                new AlertDialog.Builder(getContext())
+                        .setMessage("nonsupport parent layout, please do it by yourself")
+                        .setPositiveButton("OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                    }
+                                })
+                        .setCancelable(false)
+                        .show();
+                return;
+            }
+            setLayoutParams(fullParams);
+            isfullState = true;
+        }
+    }
+
+    public void exitFullScreen(Activity activity) {
+
+        if (isfullState) {
+            if (activity.getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
+                        WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+            }
+            setLayoutParams(mRawParams);
+            isfullState = false;
+        }
+    }
+
+    public final int CACHE_TIME = 100001;
+
+    public void setCacheMsec(long cacheMsec) {
+        this.cacheMsec = cacheMsec;
+    }
+
+    public long cacheMsec;
+    private Handler handler = new Handler() {
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case CACHE_TIME: {
+                    Log.e(TAG, "cached mesc:" + mMediaPlayer.getAudioCachedDuration());
+                    if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheMsec) {
+                        handler.removeMessages(CACHE_TIME);
+                        handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
+                    } else {
+                        start();
+                    }
+                }
+            }
+        }
+    };
+
+    public void setImage(int rec) {
+        if (mRenderView != null) {
+            mRenderView.getView().setBackgroundResource(rec);
+        }
+    }
+
+    private String getNetState() {
+        return NetStateUtil.isConnected(mAppContext).toString();
     }
 }

@@ -17,25 +17,36 @@
 package com.upyun.upplayer.widget;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.MediaController;
+import android.widget.RelativeLayout;
 
 import java.io.IOException;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
 public class SimpleVideoView extends SurfaceView implements MediaController.MediaPlayerControl {
 
@@ -83,6 +94,14 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
     private static final String TAG = SimpleVideoView.class.getSimpleName();
 
     private IjkMediaPlayer mMediaPlayer;
+    private ViewGroup.LayoutParams mRawParams;
+    private long cacheMsec;
+
+    public boolean isfullState() {
+        return isfullState;
+    }
+
+    private boolean isfullState;
 
 
     public SimpleVideoView(Context context) {
@@ -118,8 +137,7 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
             int widthSpecSize = MeasureSpec.getSize(widthMeasureSpec);
             int heightSpecMode = MeasureSpec.getMode(heightMeasureSpec);
             int heightSpecSize = MeasureSpec.getSize(heightMeasureSpec);
-
-            Log.e(TAG, "size:" + widthSpecSize + "*" + heightSpecSize + "  Video:" + mVideoWidth + "*" + mVideoHeight);
+//            Log.e(TAG, "size:" + widthSpecSize + "*" + heightSpecSize + "  Video:" + mVideoWidth + "*" + mVideoHeight);
 
             if (widthSpecMode == MeasureSpec.EXACTLY && heightSpecMode == MeasureSpec.EXACTLY) {
                 // the size is fixed
@@ -168,7 +186,7 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
         } else {
             // no size yet, just adopt the given spec sizes
         }
-        getHolder().setFixedSize(width,height);
+        getHolder().setFixedSize(width, height);
         setMeasuredDimension(width, height);
     }
 
@@ -253,7 +271,6 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
     }
 
     private void openVideo() {
-
         if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
             return;
@@ -264,8 +281,8 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
         AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
-        mMediaPlayer = new IjkMediaPlayer();
         try {
+            mMediaPlayer = new IjkMediaPlayer();
             mMediaPlayer.setOnPreparedListener(mPreparedListener);
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mMediaPlayer.setOnCompletionListener(mCompletionListener);
@@ -290,8 +307,20 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
             // target state that was there before.
             mCurrentState = STATE_PREPARING;
             attachMediaController();
-        } catch (IOException e) {
-
+        } catch (IOException ex) {
+            Log.w(TAG, "Unable to open content: " + mUri, ex);
+            mCurrentState = STATE_ERROR;
+            mTargetState = STATE_ERROR;
+            mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
+            return;
+        } catch (IllegalArgumentException ex) {
+            Log.w(TAG, "Unable to open content: " + mUri, ex);
+            mCurrentState = STATE_ERROR;
+            mTargetState = STATE_ERROR;
+            mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
+            return;
+        } finally {
+            // REMOVED: mPendingSubtitleTracks.clear();
         }
     }
 
@@ -335,9 +364,9 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
 
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
-            setBackground(null);
             mCurrentState = STATE_PREPARED;
-
+            mMediaPlayer.pause();
+            start();
             // Get the capabilities of the player for this stream
             // REMOVED: Metadata
 
@@ -357,7 +386,7 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
             if (mVideoWidth != 0 && mVideoHeight != 0) {
                 //Log.i("@@@@", "video size: " + mVideoWidth +"/"+ mVideoHeight);
                 // REMOVED: getHolder().setFixedSize(mVideoWidth, mVideoHeight);
-//                setVideoSize(mVideoWidth, mVideoHeight);
+                setVideoSize(mVideoWidth, mVideoHeight);
                 if (mSurfaceWidth == mVideoWidth && mSurfaceHeight == mVideoHeight) {
                     // We didn't actually change the size (it was already at the size
                     // we need), so we won't get a "surface changed" callback, so
@@ -587,11 +616,7 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
 
     @Override
     public void start() {
-        if (isInPlaybackState()) {
-            mMediaPlayer.start();
-            mCurrentState = STATE_PLAYING;
-        }
-        mTargetState = STATE_PLAYING;
+        handler.sendEmptyMessage(CACHE_TIME);
     }
 
     @Override
@@ -606,7 +631,9 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
     }
 
     public void resume() {
-        openVideo();
+        seekTo(0);
+        start();
+//        openVideo();
     }
 
     @Override
@@ -675,4 +702,104 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
         return mAudioSession;
     }
 
+    public void fullScreen(Activity activity) {
+        if (!isfullState) {
+            if (activity.getRequestedOrientation() != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            }
+            activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            DisplayMetrics metrics = new DisplayMetrics();
+            activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            mRawParams = getLayoutParams();
+            ViewGroup.LayoutParams fullParams;
+            if (mRawParams instanceof RelativeLayout.LayoutParams) {
+                fullParams = new RelativeLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else if (mRawParams instanceof LinearLayout.LayoutParams) {
+                fullParams = new LinearLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else if (mRawParams instanceof FrameLayout.LayoutParams) {
+                fullParams = new FrameLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else {
+                new AlertDialog.Builder(getContext())
+                        .setMessage("nonsupport parent layout, please do it by yourself")
+                        .setPositiveButton("OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                    }
+                                })
+                        .setCancelable(false)
+                        .show();
+                return;
+            }
+            setLayoutParams(fullParams);
+            isfullState = true;
+        }
+    }
+
+    public void exitFullScreen(Activity activity) {
+
+        if (isfullState) {
+            if (activity.getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
+                        WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+            }
+            setLayoutParams(mRawParams);
+            isfullState = false;
+        }
+    }
+
+    public ITrackInfo[] getTrackInfo() {
+        if (mMediaPlayer == null)
+            return null;
+
+        return mMediaPlayer.getTrackInfo();
+    }
+
+    public void selectTrack(int stream) {
+        if (mMediaPlayer == null)
+            return;
+        mMediaPlayer.selectTrack(stream);
+    }
+
+    public void deselectTrack(int stream) {
+        if (mMediaPlayer == null)
+            return;
+        mMediaPlayer.deselectTrack(stream);
+    }
+
+    public int getSelectedTrack(int trackType) {
+        if (mMediaPlayer == null)
+            return -1;
+        return mMediaPlayer.getSelectedTrack(trackType);
+    }
+
+    public void setCacheTime(long msec) {
+        cacheMsec = msec;
+    }
+
+    public final int CACHE_TIME = 100001;
+    private Handler handler = new Handler() {
+
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case CACHE_TIME: {
+                    Log.e(TAG, "cached mesc:" + mMediaPlayer.getAudioCachedDuration());
+                    if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheMsec) {
+                        handler.removeMessages(CACHE_TIME);
+                        handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
+                    } else {
+                        if (isInPlaybackState()) {
+                            setBackground(null);
+                            mMediaPlayer.start();
+                            mCurrentState = STATE_PLAYING;
+                        }
+                        mTargetState = STATE_PLAYING;
+                    }
+                }
+            }
+        }
+    };
 }

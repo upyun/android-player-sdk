@@ -7,12 +7,10 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.upyun.upplayer.widget.SimpleVideoView;
-
-import tv.danmaku.ijk.media.player.IMediaPlayer;
+import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
@@ -24,51 +22,35 @@ public class MainActivity extends Activity {
 //    String path = "/mnt/sdcard/localfile.mp4";
 
     private static final String TAG = MainActivity.class.getSimpleName();
-
-//    LinearLayout mVideoContainer;
-    LinearLayout mButtons;
     SimpleVideoView mSimpleVideoView;
     RelativeLayout.LayoutParams mVideoParams;
+
+    UpVideoView upVideoView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        mVideoContainer = (LinearLayout) findViewById(R.id.ll_video_container);
-        mSimpleVideoView = (SimpleVideoView) findViewById(R.id.uvv_vido);
-        mButtons = (LinearLayout) findViewById(R.id.lly_button);
-        mSimpleVideoView.setBackgroundResource(R.drawable.dog);
-        mSimpleVideoView.setVideoPath(path);
-        mSimpleVideoView.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(IMediaPlayer mp) {
-//                Log.e(TAG, mp.getMediaInfo().toString());
-            }
-        });
-
-        mSimpleVideoView.setOnErrorListener(new IMediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(IMediaPlayer mp, int what, int extra) {
-//                Log.e(TAG, mp.toString() + what + extra);
-                return false;
-            }
-        });
+        upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
+        upVideoView.setVideoPath(path);
+        upVideoView.setImage(R.drawable.dog);
+        upVideoView.setCacheMsec(5000);
     }
 
-    public void change(View view) {
-        if (mSimpleVideoView.isPlaying()) {
-            mSimpleVideoView.pause();
+    public void toggle(View view) {
+        if (upVideoView.isPlaying()) {
+            upVideoView.pause();
         } else {
-            mSimpleVideoView.start();
+           upVideoView.start();
         }
     }
 
     public void refresh(View view) {
-        mSimpleVideoView.resume();
+        upVideoView.resume();
     }
 
     public void fullScreen(View view) {
-        fullScreen();
+        upVideoView.fullScreen(this);
     }
 
     private void fullScreen() {
@@ -80,9 +62,9 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
-        mVideoParams = (RelativeLayout.LayoutParams) mSimpleVideoView.getLayoutParams();
-        mSimpleVideoView.setLayoutParams(params);
-        mButtons.setVisibility(View.INVISIBLE);
+        mVideoParams = (RelativeLayout.LayoutParams)upVideoView.getLayoutParams();
+        upVideoView.setLayoutParams(params);
+        upVideoView.getTrackInfo();
     }
 
     @Override
@@ -94,14 +76,17 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
-                    WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-            if (mVideoParams != null) {
-                mSimpleVideoView.setLayoutParams(mVideoParams);
-                mButtons.setVisibility(View.VISIBLE);
-            }
+//        if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+//            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+//            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
+//                    WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+//            if (mVideoParams != null) {
+//                upVideoView.setLayoutParams(mVideoParams);
+//            }
+//            return;
+//        }
+        if(upVideoView.isfullState()){
+            upVideoView.exitFullScreen(this);
             return;
         }
         super.onBackPressed();

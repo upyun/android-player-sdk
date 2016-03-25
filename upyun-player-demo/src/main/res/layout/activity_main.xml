@@ -5,7 +5,12 @@
     android:layout_height="match_parent"
     tools:context="com.upyun.rtmptest.MainActivity">
 
-    <com.upyun.upplayer.widget.SimpleVideoView
+    <!--<com.upyun.upplayer.widget.SimpleVideoView-->
+        <!--android:id="@+id/svv_vido"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="600dp" />-->
+
+    <com.upyun.upplayer.widget.UpVideoView
         android:id="@+id/uvv_vido"
         android:layout_width="match_parent"
         android:layout_height="600dp" />
@@ -23,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:onClick="change"
+            android:onClick="toggle"
             android:text="on/off" />
 
         <Button
