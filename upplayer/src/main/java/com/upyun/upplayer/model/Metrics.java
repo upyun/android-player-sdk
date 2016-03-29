@@ -1,4 +1,4 @@
-package com.upyun.upplayer;
+package com.upyun.upplayer.model;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

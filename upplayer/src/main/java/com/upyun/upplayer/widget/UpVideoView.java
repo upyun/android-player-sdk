@@ -22,6 +22,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -43,12 +44,9 @@ import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
 
-import com.upyun.upplayer.Metrics;
-import com.upyun.upplayer.NetStateUtil;
+import com.upyun.upplayer.common.MetricsRecorder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -56,7 +54,7 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
 public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
-    private String TAG = "IjkVideoView";
+    private String TAG = "UpVideoView";
     // settable by the client
     private Uri mUri;
     private Map<String, String> mHeaders;
@@ -111,15 +109,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private int mVideoSarNum;
     private int mVideoSarDen;
 
-    private boolean isfullState;
+    private boolean isFullState;
     private ViewGroup.LayoutParams mRawParams;
-    private List<Long> blockTimes = new ArrayList<>();
-    private long bufferEndTime;
-    private long bufferStartTime;
-    private Metrics metrics;
 
-    public boolean isfullState() {
-        return isfullState;
+    private MetricsRecorder recorder;
+
+
+    public boolean isFullState() {
+        return isFullState;
     }
 
     public UpVideoView(Context context) {
@@ -150,7 +147,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     private void initVideoView(Context context) {
         mAppContext = context.getApplicationContext();
-
         SurfaceRenderView renderView = new SurfaceRenderView(getContext());
         setRenderView(renderView);
 
@@ -164,6 +160,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         // REMOVED: mPendingSubtitleTracks = new Vector<Pair<InputStream, MediaFormat>>();
         mCurrentState = STATE_IDLE;
         mTargetState = STATE_IDLE;
+
+        recorder = new MetricsRecorder(mAppContext);
+        //初始化统计信息
+//        metrics = new Metrics();
+//        bufferingTimes = new ArrayList<>();
+//        metrics.setNonSmoothTimes(bufferingTimes);
+//        NetUtil.getClientIp(metrics);
+//        netSpeed = new NetSpeed(mAppContext);
     }
 
     public void setRenderView(IRenderView renderView) {
@@ -253,9 +257,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     @TargetApi(Build.VERSION_CODES.M)
     private void openVideo() {
-
-        metrics = new Metrics();
-        metrics.setNonSmoothTimes(blockTimes);
         if (mUri == null || mSurfaceHolder == null) {
             // not ready for playback just yet, will try again later
             return;
@@ -263,6 +264,11 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         // we shouldn't clear the target state, because somebody might have
         // called start() previously
         release(false);
+
+        //开始播放时间
+        recorder.Start();
+        recorder.setPlayUrl(mUri.toString());
+        recorder.setCacheDuration(cacheDuration);
 
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
@@ -354,9 +360,10 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
+            recorder.FirstPacket();
             mCurrentState = STATE_PREPARED;
             mMediaPlayer.pause();
-            handler.sendEmptyMessage(CACHE_TIME);
+//            pause();
 
             // Get the capabilities of the player for this stream
             // REMOVED: Metadata
@@ -436,14 +443,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
-                            bufferStartTime = System.currentTimeMillis();
-                            if (bufferEndTime != 0) {
-                                blockTimes.add(bufferEndTime - bufferStartTime);
-                            }
+                            pause();
+                            recorder.BufferStart();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
-                            bufferEndTime = System.currentTimeMillis();
+                            recorder.BufferEnd();
+                            start();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH:
@@ -649,6 +655,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
      * release the media player in any state
      */
     public void release(boolean cleartargetstate) {
+
         if (mMediaPlayer != null) {
             mMediaPlayer.reset();
             mMediaPlayer.release();
@@ -731,9 +738,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public void start() {
         if (isInPlaybackState()) {
-            mRenderView.getView().setBackground(null);
-            mMediaPlayer.start();
-            mCurrentState = STATE_PLAYING;
+            handler.sendEmptyMessage(CACHE_TIME);
         }
         mTargetState = STATE_PLAYING;
     }
@@ -877,7 +882,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     }
 
     public void fullScreen(Activity activity) {
-        if (!isfullState) {
+        if (!isFullState) {
             if (activity.getRequestedOrientation() != ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             }
@@ -906,42 +911,43 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 return;
             }
             setLayoutParams(fullParams);
-            isfullState = true;
+            isFullState = true;
         }
     }
 
     public void exitFullScreen(Activity activity) {
 
-        if (isfullState) {
+        if (isFullState) {
             if (activity.getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                 activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
                         WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
             }
             setLayoutParams(mRawParams);
-            isfullState = false;
+            isFullState = false;
         }
     }
 
     public final int CACHE_TIME = 100001;
 
-    public void setCacheMsec(long cacheMsec) {
-        this.cacheMsec = cacheMsec;
+    public void setCacheDuration(long cacheDuration) {
+        this.cacheDuration = cacheDuration;
     }
 
-    public long cacheMsec;
+    public long cacheDuration;
     private Handler handler = new Handler() {
 
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case CACHE_TIME: {
-                    Log.e(TAG, "cached mesc:" + mMediaPlayer.getAudioCachedDuration());
-                    if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheMsec) {
+                    if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheDuration) {
                         handler.removeMessages(CACHE_TIME);
                         handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
                     } else {
-                        start();
+                        mRenderView.getView().setBackground(null);
+                        mMediaPlayer.start();
+                        mCurrentState = STATE_PLAYING;
                     }
                 }
             }
@@ -954,7 +960,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         }
     }
 
-    private String getNetState() {
-        return NetStateUtil.isConnected(mAppContext).toString();
+    public void setImage(Drawable background) {
+        if (mRenderView != null) {
+            mRenderView.getView().setBackground(background);
+        }
     }
 }

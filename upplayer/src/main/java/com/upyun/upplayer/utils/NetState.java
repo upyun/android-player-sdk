@@ -1,4 +1,4 @@
-package com.upyun.upplayer;
+package com.upyun.upplayer.utils;
 
 /**
  * 枚举网络状态
