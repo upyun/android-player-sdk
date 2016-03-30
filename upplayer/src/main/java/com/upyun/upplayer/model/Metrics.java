@@ -3,10 +3,11 @@ package com.upyun.upplayer.model;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Metrics {
+public class Metrics implements Serializable {
     @SerializedName("non_smooth_count")
     @Expose
     private Integer nonSmoothCount;

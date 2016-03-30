@@ -44,7 +44,9 @@ import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
 
+import com.upyun.upplayer.common.Config;
 import com.upyun.upplayer.common.MetricsRecorder;
+import com.upyun.upplayer.utils.TrackUtil;
 
 import java.io.IOException;
 import java.util.Map;
@@ -268,7 +270,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         //开始播放时间
         recorder.Start();
         recorder.setPlayUrl(mUri.toString());
-        recorder.setCacheDuration(cacheDuration);
 
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
@@ -443,6 +444,12 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            if(recorder.getNonSmoothCount()> Config.PostBlockTime-1){
+                                recorder.postRecord();
+                            }
+                            if(recorder.getNonSmoothCount()> Config.SwitchBlockTime-1){
+                                TrackUtil.lowerVideoTrack(UpVideoView.this);
+                            }
                             pause();
                             recorder.BufferStart();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
@@ -453,6 +460,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH:
+                            recorder.setBandwidth(arg2);
                             Log.d(TAG, "MEDIA_INFO_NETWORK_BANDWIDTH: " + arg2);
                             break;
                         case IMediaPlayer.MEDIA_INFO_BAD_INTERLEAVING:
@@ -642,7 +650,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mSurfaceHolder = null;
             // REMOVED: if (mMediaController != null) mMediaController.hide();
             // REMOVED: release(true);
-            releaseWithoutStop();
+//            releaseWithoutStop();
+            if (mMediaController != null) mMediaController.hide();
+            release(true);
         }
     };
 
@@ -932,6 +942,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     public void setCacheDuration(long cacheDuration) {
         this.cacheDuration = cacheDuration;
+        recorder.setCacheDuration(cacheDuration);
     }
 
     public long cacheDuration;
@@ -945,6 +956,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                         handler.removeMessages(CACHE_TIME);
                         handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
                     } else {
+                        recorder.startPlay();
                         mRenderView.getView().setBackground(null);
                         mMediaPlayer.start();
                         mCurrentState = STATE_PLAYING;

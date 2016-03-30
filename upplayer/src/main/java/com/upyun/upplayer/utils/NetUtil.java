@@ -7,6 +7,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.upyun.upplayer.common.Config;
 import com.upyun.upplayer.model.IP;
 import com.upyun.upplayer.model.Metrics;
@@ -15,9 +16,11 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 
 public class NetUtil {
@@ -121,8 +124,46 @@ public class NetUtil {
     /**
      * 上传统计信息到服务器
      *
-     * @param metrics
+     * @param metricses
      */
+    public static void postMetric(List<Metrics> metricses) {
+        Gson gson = new Gson();
+        Type typeOfSrc = new TypeToken<List<Metrics>>() {
+        }.getType();
+        final String json = gson.toJson(metricses, typeOfSrc);
+        Log.e(TAG, json);
+
+        new Thread() {
+            @Override
+            public void run() {
+                HttpURLConnection urlConnection = null;
+                try {
+                    URL url = new URL(Config.postAddress);
+                    urlConnection = (HttpURLConnection) url.openConnection();
+                    urlConnection.setDoOutput(true);
+                    urlConnection.setDoInput(true);
+                    urlConnection.setRequestMethod("POST");
+                    OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
+                    wr.write(json.toString());
+                    wr.flush();
+                    wr.close();
+                    int HttpResult = urlConnection.getResponseCode();
+                    if (HttpResult == HttpURLConnection.HTTP_OK) {
+                        Log.e(TAG, "post ok");
+                    }
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (urlConnection != null) {
+                        urlConnection.disconnect();
+                    }
+                }
+            }
+        }.start();
+    }
+
     public static void postMetric(Metrics metrics) {
         Gson gson = new Gson();
         final String json = gson.toJson(metrics);
