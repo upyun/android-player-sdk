@@ -34,26 +34,26 @@ public class MetricsRecorder {
 
     public MetricsRecorder(Context context) {
         this.mCotext = context;
-        tempFile = new File(context.getCacheDir(),"metrics");
+        this.tempFile = new File(context.getCacheDir(), "metrics");
         try {
             ObjectInputStream os = new ObjectInputStream(new FileInputStream(tempFile));
-            metricses= (List<Metrics>) os.readObject();
+            metricses = (List<Metrics>) os.readObject();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        if(metrics==null){
+        if (metrics == null) {
             metricses = new ArrayList<>();
         }
-        metrics = new Metrics();
-        bufferingTimes = new ArrayList<>();
-        metrics.setNonSmoothTimes(bufferingTimes);
-        metricses.add(metrics);
-        metrics.setClientNetwork(NetUtil.isConnected(mCotext).toString());
-        metrics.setPlayVersion(Config.VERSION);
-        metrics.setSystemVersion(Build.VERSION.RELEASE);
-        netSpeed = new NetSpeed(mCotext);
+        this.metrics = new Metrics();
+        this.metricses.add(this.metrics);
+        this.bufferingTimes = new ArrayList<>();
+        this.metrics.setNonSmoothTimes(bufferingTimes);
+        this.metrics.setClientNetwork(NetUtil.isConnected(mCotext).toString());
+        this.metrics.setPlayVersion(Config.VERSION);
+        this.metrics.setSystemVersion(Build.VERSION.RELEASE);
+        this.netSpeed = new NetSpeed(mCotext);
     }
 
     public void Start() {
@@ -62,30 +62,30 @@ public class MetricsRecorder {
 
     public void FirstPacket() {
         this.firstPacketTime = System.currentTimeMillis();
-        metrics.setFirstPacketDuration(firstPacketTime - startTime + "");
+        this.metrics.setFirstPacketDuration(firstPacketTime - startTime + "");
     }
 
     public void startPlay() {
         if (firstPlayTime == 0) {
             this.firstPlayTime = System.currentTimeMillis();
-            metrics.setFirstPlayDuration(firstPlayTime - startTime + "");
+            this.metrics.setFirstPlayDuration(firstPlayTime - startTime + "");
         }
     }
 
     public void setPlayUrl(String url) {
 
-        metrics.setPlayUrl(url);
+        this.metrics.setPlayUrl(url);
     }
 
     public void setCacheDuration(long mesc) {
 
-        metrics.setPlayBufferTime(mesc + "");
+        this.metrics.setPlayBufferTime(mesc + "");
     }
 
     public void endRecode() {
-        metrics.setTotalPlayDuration(System.currentTimeMillis() - startTime + "");
-        metrics.setAvgDownloadSpeed(netSpeed.getAvgSpeed() + "");
-        metrics.setNonSmoothCount(bufferingTimes.size());
+        this.metrics.setTotalPlayDuration(System.currentTimeMillis() - startTime + "");
+        this.metrics.setAvgDownloadSpeed(netSpeed.getAvgSpeed() + "");
+        this.metrics.setNonSmoothCount(bufferingTimes.size());
         try {
             ObjectOutputStream objectOutput = new ObjectOutputStream(new FileOutputStream(tempFile));
             objectOutput.writeObject(metricses);
@@ -106,17 +106,20 @@ public class MetricsRecorder {
     }
 
     public void setBandwidth(int arg2) {
-        metrics.setUrlBandwidth(arg2 + "");
+        this.metrics.setUrlBandwidth(arg2 + "");
     }
 
     public void postRecord() {
-        if(metricses!=null&&metricses.size()>0){
+        if (this.metricses != null && metricses.size() > 0) {
             NetUtil.postMetric(metricses);
-            metricses.clear();
+            this.metricses.clear();
         }
     }
 
-    public int getNonSmoothCount(){
-        return metrics.getNonSmoothCount();
+    public int getNonSmoothCount() {
+        if (metricses != null) {
+            return metricses.size();
+        }
+        return 0;
     }
 }
