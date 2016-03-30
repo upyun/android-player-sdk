@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
         upVideoView.setVideoPath(path);
         upVideoView.setImage(R.drawable.dog);
         upVideoView.setCacheDuration(5000);
+        upVideoView.start();
     }
 
     public void toggle(View view) {

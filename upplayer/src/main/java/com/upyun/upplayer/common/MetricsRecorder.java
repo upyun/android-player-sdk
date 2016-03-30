@@ -18,7 +18,7 @@ import java.util.List;
 
 public class MetricsRecorder {
 
-    public List<Metrics> metricses;
+    public List<Metrics> metricsList;
     public NetSpeed netSpeed;
     public long startTime;
     public long firstPacketTime;
@@ -37,17 +37,17 @@ public class MetricsRecorder {
         this.tempFile = new File(context.getCacheDir(), "metrics");
         try {
             ObjectInputStream os = new ObjectInputStream(new FileInputStream(tempFile));
-            metricses = (List<Metrics>) os.readObject();
+            metricsList = (List<Metrics>) os.readObject();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         if (metrics == null) {
-            metricses = new ArrayList<>();
+            metricsList = new ArrayList<>();
         }
         this.metrics = new Metrics();
-        this.metricses.add(this.metrics);
+        this.metricsList.add(this.metrics);
         this.bufferingTimes = new ArrayList<>();
         this.metrics.setNonSmoothTimes(bufferingTimes);
         this.metrics.setClientNetwork(NetUtil.isConnected(mCotext).toString());
@@ -88,7 +88,7 @@ public class MetricsRecorder {
         this.metrics.setNonSmoothCount(bufferingTimes.size());
         try {
             ObjectOutputStream objectOutput = new ObjectOutputStream(new FileOutputStream(tempFile));
-            objectOutput.writeObject(metricses);
+            objectOutput.writeObject(metricsList);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -110,15 +110,16 @@ public class MetricsRecorder {
     }
 
     public void postRecord() {
-        if (this.metricses != null && metricses.size() > 0) {
-            NetUtil.postMetric(metricses);
-            this.metricses.clear();
+        if (this.metricsList != null && metricsList.size() > 0) {
+            NetUtil.postMetric(metricsList);
+            this.metricsList.clear();
+            this.metricsList.add(metrics);
         }
     }
 
     public int getNonSmoothCount() {
-        if (metricses != null) {
-            return metricses.size();
+        if (metricsList != null) {
+            return metricsList.size();
         }
         return 0;
     }

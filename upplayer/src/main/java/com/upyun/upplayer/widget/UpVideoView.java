@@ -276,6 +276,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
         try {
             mMediaPlayer = new IjkMediaPlayer();
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 0);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", IjkMediaPlayer.SDL_FCC_RV32);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", 0);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
 
             // TODO: create SubtitleController in MediaPlayer, but we need
             // a context for the subtitle renderers
@@ -364,7 +371,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             recorder.FirstPacket();
             mCurrentState = STATE_PREPARED;
             mMediaPlayer.pause();
-//            pause();
 
             // Get the capabilities of the player for this stream
             // REMOVED: Metadata
@@ -444,19 +450,17 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
-                            if(recorder.getNonSmoothCount()> Config.PostBlockTime-1){
+                            if (recorder.getNonSmoothCount() > Config.PostBlockTime - 1) {
                                 recorder.postRecord();
                             }
-                            if(recorder.getNonSmoothCount()> Config.SwitchBlockTime-1){
+                            if (recorder.getNonSmoothCount() > Config.SwitchBlockTime - 1) {
                                 TrackUtil.lowerVideoTrack(UpVideoView.this);
                             }
-                            pause();
                             recorder.BufferStart();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
                             recorder.BufferEnd();
-                            start();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_NETWORK_BANDWIDTH:
@@ -669,6 +673,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (mMediaPlayer != null) {
             mMediaPlayer.reset();
             mMediaPlayer.release();
+            recorder.endRecode();
             mMediaPlayer = null;
             // REMOVED: mPendingSubtitleTracks.clear();
             mCurrentState = STATE_IDLE;
@@ -953,6 +958,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             switch (msg.what) {
                 case CACHE_TIME: {
                     if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheDuration) {
+                        Log.e(TAG, "Duration:" + mMediaPlayer.getAudioCachedDuration());
                         handler.removeMessages(CACHE_TIME);
                         handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
                     } else {
