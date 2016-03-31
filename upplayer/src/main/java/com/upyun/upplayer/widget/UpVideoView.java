@@ -861,11 +861,11 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             IRenderView.AR_ASPECT_FIT_PARENT,
             IRenderView.AR_ASPECT_FILL_PARENT,
             IRenderView.AR_ASPECT_WRAP_CONTENT,
-            // IRenderView.AR_MATCH_PARENT,
+            IRenderView.AR_MATCH_PARENT,
             IRenderView.AR_16_9_FIT_PARENT,
             IRenderView.AR_4_3_FIT_PARENT};
     private int mCurrentAspectRatioIndex = 0;
-    private int mCurrentAspectRatio = s_allAspectRatio[1];
+    private int mCurrentAspectRatio = s_allAspectRatio[0];
 
     public int toggleAspectRatio() {
         mCurrentAspectRatioIndex++;
@@ -875,6 +875,12 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (mRenderView != null)
             mRenderView.setAspectRatio(mCurrentAspectRatio);
         return mCurrentAspectRatio;
+    }
+
+    public void setAspectRatio(int aspectRatio) {
+        mCurrentAspectRatio = aspectRatio;
+        if (mRenderView != null)
+            mRenderView.setAspectRatio(mCurrentAspectRatio);
     }
 
     public ITrackInfo[] getTrackInfo() {
