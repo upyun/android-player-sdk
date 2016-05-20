@@ -25,25 +25,41 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
+
+        //设置默认缓存区大小 (需在setVideoPath 或者 resume 前执行生效)
         upVideoView.setBufferSize(1 * 1024 * 1024);
+
+        //设置背景图片
+        upVideoView.setImage(R.drawable.dog);
+
+        //设置播放地址
         upVideoView.setVideoPath(path);
+
+        //开始播放
+        upVideoView.start();
     }
 
     public void toggle(View view) {
         if (upVideoView.isPlaying()) {
+
+            //暂停播放
             upVideoView.pause();
 
         } else {
+
+            //开始播放
             upVideoView.start();
         }
     }
 
     public void refresh(View view) {
+
+        // 重新开始播放器
         upVideoView.resume();
         upVideoView.start();
     }
 
+    //全屏播放
     public void fullScreen(View view) {
         upVideoView.fullScreen(this);
     }
@@ -73,6 +89,7 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
 
         if (upVideoView.isFullState()) {
+            //退出全屏
             upVideoView.exitFullScreen(this);
             return;
         }

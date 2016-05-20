@@ -959,6 +959,10 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     public long cacheDuration;
 
+    /**
+     * 设置默认背景图片
+     * @param rec
+     */
     public void setImage(int rec) {
         if (mRenderView != null) {
             mRenderView.getView().setBackgroundResource(rec);
@@ -972,13 +976,17 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     }
 
     /**
-     * 设置缓冲区大小
+     * 设置缓冲区大小 单位(B) 默认 15MB
      * @param size
      */
     public void setBufferSize(int size) {
         bufferSize = size;
     }
 
+    /**
+     * 设置是否自动开始播放 默认false
+     * @param autoPlay
+     */
     public void setAutoStart(boolean autoPlay) {
         isAutoPlay = autoPlay;
     }
