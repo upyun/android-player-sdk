@@ -26,6 +26,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
+
         //设置默认缓存区大小 (需在setVideoPath 或者 resume 前执行生效)
         upVideoView.setBufferSize(1 * 1024 * 1024);
 

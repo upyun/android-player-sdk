@@ -21,9 +21,9 @@ android-player-sdk 是一个适用于 Android 平台的影音播发器 SDK ，�
 
 ## sdk 使用
 
-* 导入 [so lib 库]()
+* 导入 [so lib 库](https://github.com/upyun/android-player-sdk/tree/master/upyun-player-demo/src/main/jniLibs)
 
-* 导入 java lib 库 [ijkplayer-java]() 和 [upplayer]()
+* 导入 java lib 库 [ijkplayer-java](https://github.com/upyun/android-player-sdk/tree/master/ijkplayer-java) 和 [upplayer](https://github.com/upyun/android-player-sdk/tree/master/upplayer)
 
 ## SDK 使用示例
 
@@ -49,7 +49,7 @@ android-player-sdk 是一个适用于 Android 平台的影音播发器 SDK ，�
         upVideoView.resume();
 ```
 
-详见 [DEMO]()
+详见 [DEMO](https://github.com/upyun/android-player-sdk/blob/master/upyun-player-demo/src/main/java/com/upyun/playdemo/MainActivity.java)
 
 ## SDK 最低要求
 
