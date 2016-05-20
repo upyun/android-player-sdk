@@ -3,25 +3,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.upyun.rtmptest.MainActivity">
-
-    <!--<com.upyun.upplayer.widget.SimpleVideoView-->
-        <!--android:id="@+id/svv_vido"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="600dp" />-->
+    tools:context="com.upyun.playdemo.MainActivity">
 
     <com.upyun.upplayer.widget.UpVideoView
         android:id="@+id/uvv_vido"
         android:layout_width="match_parent"
-        android:layout_height="600dp" />
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:id="@+id/lly_button"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/uvv_vido"
-        android:orientation="horizontal"
-        android:paddingTop="10dp">
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/bt_change"

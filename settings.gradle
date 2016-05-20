@@ -1,1 +1,1 @@
-include ':upyun-player-demo', ':ijkplayer-java', ':ijkplayer-armv7a', ':upplayer'
+include ':upyun-player-demo', ':ijkplayer-java', ':upplayer'

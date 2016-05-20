@@ -27,8 +27,6 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -98,6 +96,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private boolean mCanSeekBack = true;
     private boolean mCanSeekForward = true;
 
+    private int bufferSize = -1;
+    private boolean isAutoPlay = false;
+
     /** Subtitle rendering widget overlaid on top of the video. */
     // private RenderingWidget mSubtitleWidget;
 
@@ -164,12 +165,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         mTargetState = STATE_IDLE;
 
         recorder = new MetricsRecorder(mAppContext);
-        //初始化统计信息
-//        metrics = new Metrics();
-//        bufferingTimes = new ArrayList<>();
-//        metrics.setNonSmoothTimes(bufferingTimes);
-//        NetUtil.getClientIp(metrics);
-//        netSpeed = new NetSpeed(mAppContext);
     }
 
     public void setRenderView(IRenderView renderView) {
@@ -276,13 +271,17 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
         try {
             mMediaPlayer = new IjkMediaPlayer();
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 0);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", IjkMediaPlayer.SDL_FCC_RV32);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", 0);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
-//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 0);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "opensles", 0);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", IjkMediaPlayer.SDL_FCC_RV32);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", isAutoPlay ? 1 : 0);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+
+            if (bufferSize != -1) {
+                mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", bufferSize);
+            }
 
             // TODO: create SubtitleController in MediaPlayer, but we need
             // a context for the subtitle renderers
@@ -753,7 +752,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public void start() {
         if (isInPlaybackState()) {
-            handler.sendEmptyMessage(CACHE_TIME);
+            mMediaPlayer.start();
+            mCurrentState = STATE_PLAYING;
+            mRenderView.getView().setBackground(null);
         }
         mTargetState = STATE_PLAYING;
     }
@@ -949,34 +950,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         }
     }
 
-    public final int CACHE_TIME = 100001;
 
-    public void setCacheDuration(long cacheDuration) {
+    // TODO: 16/5/20 设置播放前至少缓存时间
+    private void setCacheDuration(long cacheDuration) {
         this.cacheDuration = cacheDuration;
         recorder.setCacheDuration(cacheDuration);
     }
 
     public long cacheDuration;
-    private Handler handler = new Handler() {
-
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case CACHE_TIME: {
-                    if (mMediaPlayer != null && mMediaPlayer.getAudioCachedDuration() < cacheDuration) {
-                        Log.e(TAG, "Duration:" + mMediaPlayer.getAudioCachedDuration());
-                        handler.removeMessages(CACHE_TIME);
-                        handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
-                    } else {
-                        recorder.startPlay();
-                        mRenderView.getView().setBackground(null);
-                        mMediaPlayer.start();
-                        mCurrentState = STATE_PLAYING;
-                    }
-                }
-            }
-        }
-    };
 
     public void setImage(int rec) {
         if (mRenderView != null) {
@@ -989,4 +970,17 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mRenderView.getView().setBackground(background);
         }
     }
+
+    /**
+     * 设置缓冲区大小
+     * @param size
+     */
+    public void setBufferSize(int size) {
+        bufferSize = size;
+    }
+
+    public void setAutoStart(boolean autoPlay) {
+        isAutoPlay = autoPlay;
+    }
+
 }

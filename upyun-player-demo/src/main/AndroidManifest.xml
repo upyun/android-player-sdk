@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.upyun.rtmptest">
+    package="com.upyun.playdemo">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name="com.upyun.playdemo.MainActivity"
             android:configChanges="orientation|keyboard|screenSize"
             android:theme="@android:style/Theme.NoTitleBar">
             <intent-filter>
