@@ -116,6 +116,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private ViewGroup.LayoutParams mRawParams;
 
     private MetricsRecorder recorder;
+    private float playSpeed = .0f;
 
 
     public boolean isFullState() {
@@ -305,6 +306,10 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
             mMediaPlayer.prepareAsync();
+
+            if (playSpeed != .0f) {
+                mMediaPlayer.setSpeed(playSpeed);
+            }
 
             // REMOVED: mPendingSubtitleTracks
 
@@ -754,7 +759,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (isInPlaybackState()) {
             mMediaPlayer.start();
             mCurrentState = STATE_PLAYING;
-            mRenderView.getView().setBackground(null);
+            mRenderView.getView().setBackgroundDrawable(null);
         }
         mTargetState = STATE_PLAYING;
     }
@@ -961,6 +966,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     /**
      * 设置默认背景图片
+     *
      * @param rec
      */
     public void setImage(int rec) {
@@ -971,12 +977,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     public void setImage(Drawable background) {
         if (mRenderView != null) {
-            mRenderView.getView().setBackground(background);
+            mRenderView.getView().setBackgroundDrawable(background);
         }
     }
 
     /**
      * 设置缓冲区大小 单位(B) 默认 15MB
+     *
      * @param size
      */
     public void setBufferSize(int size) {
@@ -985,10 +992,28 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     /**
      * 设置是否自动开始播放 默认false
+     *
      * @param autoPlay
      */
     public void setAutoStart(boolean autoPlay) {
         isAutoPlay = autoPlay;
     }
 
+
+    /**
+     * 设置播放速度
+     */
+    public void setSpeed(float speed) {
+        playSpeed = speed;
+        if (mMediaPlayer != null) {
+            mMediaPlayer.setSpeed(speed);
+        }
+    }
+
+    public float getSpeed(float speed) {
+        if (mMediaPlayer != null) {
+            return mMediaPlayer.getSpeed(.0f);
+        }
+        return .0f;
+    }
 }
