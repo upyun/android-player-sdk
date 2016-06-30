@@ -52,30 +52,24 @@ public class MonitorRecorder {
             monitorList = new ArrayList<>();
         }
 
+
+    }
+
+    public void start() {
+        this.startTime = System.currentTimeMillis();
+
         this.bufferLength = 0;
         this.monitor = new Monitor();
         this.monitorList.add(this.monitor);
         this.monitor.setNetworkType(NetUtil.isConnected(mCotext).toString());
         this.monitor.setPlayerVersion(Config.VERSION);
         this.monitor.setOsVersion(Build.VERSION.RELEASE);
-//        this.monitor.setCarrierName("...");
-//        this.monitor.setServerName("test16");
-//        this.monitor.setServerPid("111");
-//        this.monitor.setServerCid("222");
-//        this.monitor.setCountry("....");
-//        this.monitor.setProvince("....");
-//        this.monitor.setCity("....");
-//        this.monitor.setServerIp("....");
-//        this.monitor.setClientIp("....");
-//        this.monitor.setProtocol("RTMP");
         this.monitor.setTimestamp(System.currentTimeMillis());
-        this.monitor.setUuid(DeviceIdUtil.getDeviceId(context));
+        this.monitor.setUuid(DeviceIdUtil.getDeviceId(mCotext));
         this.monitor.setDevice(Build.MODEL);
         NetUtil.getClientIp(monitor);
 
-        // 获取packagemanager的实例
         PackageManager packageManager = mCotext.getPackageManager();
-        // getPackageName()是你当前类的包名，0代表是获取版本信息
 
         int version = -1;
         try {
@@ -86,13 +80,9 @@ public class MonitorRecorder {
         }
 
         this.monitor.setUa(mCotext.getPackageName() + ":" + version);
-        this.monitor.setNodeType("streaming_media_android_player");
-//        this.monitor.setNodeType("streaming_media_ios_player");
+//        this.monitor.setNodeType("streaming_media_android_player");
+        this.monitor.setNodeType("streaming_media_ios_player");
         this.netSpeed = new NetSpeed(mCotext);
-    }
-
-    public void start() {
-        this.startTime = System.currentTimeMillis();
     }
 
     public void firstPacket() {

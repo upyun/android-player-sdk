@@ -116,6 +116,20 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private MonitorRecorder monitorRecorder;
     private float playSpeed = .0f;
 
+    private long bufferTime;
+    private long startbufferTime;
+    private static int PURSUETIME = 2 * 1000;
+
+    public boolean isAutoPursue() {
+        return isAutoPursue;
+    }
+
+    public void setAutoPursue(boolean autoPursue) {
+        isAutoPursue = autoPursue;
+    }
+
+    private boolean isAutoPursue;
+
 
     public boolean isFullState() {
         return isFullState;
@@ -277,6 +291,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", isAutoPlay ? 1 : 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+
 
             if (bufferSize != -1) {
                 mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", bufferSize);
@@ -455,16 +470,19 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
-//                            if (recorder.getNonSmoothCount() > Config.PostBlockTime - 1) {
-//                                recorder.postRecord();
-//                            }
-//                            if (recorder.getNonSmoothCount() > Config.SwitchBlockTime - 1) {
-//                                TrackUtil.lowerVideoTrack(UpVideoView.this);
-//                            }
+                            startbufferTime = System.currentTimeMillis();
+                            if (bufferTime > PURSUETIME && isAutoPursue) {
+                                bufferTime = 0;
+                                resume();
+                                Log.e(TAG, "卡顿重连追帧");
+                            }
                             monitorRecorder.BufferStart();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            if (startbufferTime != 0) {
+                                bufferTime += System.currentTimeMillis() - startbufferTime;
+                            }
                             monitorRecorder.BufferEnd();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;

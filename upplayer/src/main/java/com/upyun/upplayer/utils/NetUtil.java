@@ -4,7 +4,6 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -94,7 +93,6 @@ public class NetUtil {
                     if (HttpResult == HttpURLConnection.HTTP_OK) {
                         InputStream in = new BufferedInputStream(urlConnection.getInputStream());
                         String response = readStream(in);
-                        Log.e(TAG, response);
 
                         Gson gson = new Gson();
                         IP ip = gson.fromJson(response, IP.class);
