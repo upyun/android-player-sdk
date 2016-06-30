@@ -8,17 +8,17 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.upyun.upplayer.common.Config;
 import com.upyun.upplayer.model.IP;
-import com.upyun.upplayer.model.Metrics;
+import com.upyun.upplayer.model.Monitor;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.Socket;
 import java.net.URL;
 import java.util.List;
 
@@ -79,24 +79,30 @@ public class NetUtil {
     /**
      * 获取客户端IP地址
      *
-     * @param metrics
+     * @param monitor
      */
-    public static void getClientIp(final Metrics metrics) {
+    public static void getClientIp(final Monitor monitor) {
 
         new Thread() {
             @Override
             public void run() {
                 HttpURLConnection urlConnection = null;
                 try {
-                    URL url = new URL("http://httpbin.org/ip");
+                    URL url = new URL("http://ip.taobao.com/service/getIpInfo.php?ip=myip");
                     urlConnection = (HttpURLConnection) url.openConnection();
                     int HttpResult = urlConnection.getResponseCode();
                     if (HttpResult == HttpURLConnection.HTTP_OK) {
                         InputStream in = new BufferedInputStream(urlConnection.getInputStream());
                         String response = readStream(in);
+                        Log.e(TAG, response);
+
                         Gson gson = new Gson();
-                        IP IP = gson.fromJson(response, IP.class);
-                        metrics.setClientIp(IP.getOrigin());
+                        IP ip = gson.fromJson(response, IP.class);
+                        monitor.setClientIp(ip.getData().getIp());
+                        monitor.setIsp(ip.getData().getIsp());
+                        monitor.setCountry(ip.getData().getCountry());
+                        monitor.setProvince(ip.getData().getRegion());
+                        monitor.setCountry(ip.getData().getCity());
                     }
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
@@ -115,87 +121,51 @@ public class NetUtil {
         if (in.available() == 0) {
             return null;
         }
-        byte[] buffer = new byte[in.available()];
-        in.read(buffer);
+        byte[] buffer = new byte[1024];
+        int length = in.read(buffer);
         in.close();
-        return new String(buffer);
+        return new String(buffer, 0, length);
     }
+
 
     /**
      * 上传统计信息到服务器
      *
-     * @param metricses
+     * @param monitorList
      */
-    public static void postMetric(List<Metrics> metricses) {
+    public static void postMonitor(List<Monitor> monitorList) {
         Gson gson = new Gson();
-        Type typeOfSrc = new TypeToken<List<Metrics>>() {
+        Type typeOfSrc = new TypeToken<Monitor>() {
         }.getType();
-        final String json = gson.toJson(metricses, typeOfSrc);
-        Log.e(TAG, json);
+
+        StringBuffer sb = new StringBuffer();
+
+        for (Monitor monitor : monitorList) {
+            String json = gson.toJson(monitor, typeOfSrc);
+            sb.append(json + " \n");
+        }
+
+        final String result = sb.toString();
+//        Log.e(TAG, result);
 
         new Thread() {
             @Override
             public void run() {
-                HttpURLConnection urlConnection = null;
+
                 try {
-                    URL url = new URL(Config.postAddress);
-                    urlConnection = (HttpURLConnection) url.openConnection();
-                    urlConnection.setDoOutput(true);
-                    urlConnection.setDoInput(true);
-                    urlConnection.setRequestMethod("POST");
-                    OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
-                    wr.write(json.toString());
-                    wr.flush();
-                    wr.close();
-                    int HttpResult = urlConnection.getResponseCode();
-                    if (HttpResult == HttpURLConnection.HTTP_OK) {
-                        Log.e(TAG, "post ok");
-                    }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
+                    String host = "60.191.72.5";
+                    int port = 3100;
+                    Socket client = new Socket(host, port);
+                    PrintStream out = new PrintStream(client.getOutputStream());
+                    out.print(result);
+                    out.close();
+                    client.close();
+//                    Log.e(TAG, "post succced");
                 } catch (IOException e) {
                     e.printStackTrace();
-                } finally {
-                    if (urlConnection != null) {
-                        urlConnection.disconnect();
-                    }
                 }
-            }
-        }.start();
-    }
 
-    public static void postMetric(Metrics metrics) {
-        Gson gson = new Gson();
-        final String json = gson.toJson(metrics);
-        Log.e(TAG, json);
 
-        new Thread() {
-            @Override
-            public void run() {
-                HttpURLConnection urlConnection = null;
-                try {
-                    URL url = new URL(Config.postAddress);
-                    urlConnection = (HttpURLConnection) url.openConnection();
-                    urlConnection.setDoOutput(true);
-                    urlConnection.setDoInput(true);
-                    urlConnection.setRequestMethod("POST");
-                    OutputStreamWriter wr = new OutputStreamWriter(urlConnection.getOutputStream());
-                    wr.write(json.toString());
-                    wr.flush();
-                    wr.close();
-                    int HttpResult = urlConnection.getResponseCode();
-                    if (HttpResult == HttpURLConnection.HTTP_OK) {
-                        Log.e(TAG, "post ok");
-                    }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (urlConnection != null) {
-                        urlConnection.disconnect();
-                    }
-                }
             }
         }.start();
     }

@@ -26,4 +26,9 @@ public class NetSpeed {
         long duration = System.currentTimeMillis() - last_time;
         return (int) (traffic_data * 1000 / (duration * 1024));
     }
+
+    public long getDateSize() {
+        long data = TrafficStats.getUidRxBytes(uid) == TrafficStats.UNSUPPORTED ? TrafficStats.getTotalRxBytes() : TrafficStats.getUidRxBytes(uid);
+        return data - last_data;
+    }
 }
