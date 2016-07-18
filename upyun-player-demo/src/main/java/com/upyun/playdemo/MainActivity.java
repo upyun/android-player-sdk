@@ -13,8 +13,9 @@ import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
-//    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
-    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
+    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+//    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
+//    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunaa";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/test131";
 
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -30,7 +31,7 @@ public class MainActivity extends Activity {
         upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
 
         //设置默认缓存区大小 (需在setVideoPath 或者 resume 前执行生效)
-        upVideoView.setBufferSize(0);
+        upVideoView.setBufferSize(1000);
 
         //设置背景图片
         upVideoView.setImage(R.drawable.dog);

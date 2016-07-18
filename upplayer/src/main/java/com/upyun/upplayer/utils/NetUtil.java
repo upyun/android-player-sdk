@@ -85,6 +85,7 @@ public class NetUtil {
         new Thread() {
             @Override
             public void run() {
+
                 HttpURLConnection urlConnection = null;
                 try {
                     URL url = new URL("http://ip.taobao.com/service/getIpInfo.php?ip=myip");
@@ -93,9 +94,12 @@ public class NetUtil {
                     if (HttpResult == HttpURLConnection.HTTP_OK) {
                         InputStream in = new BufferedInputStream(urlConnection.getInputStream());
                         String response = readStream(in);
-
+//                        Log.e(TAG, "response:" + response);
                         Gson gson = new Gson();
                         IP ip = gson.fromJson(response, IP.class);
+                        if (ip == null) {
+                            return;
+                        }
                         monitor.setClientIp(ip.getData().getIp());
                         monitor.setIsp(ip.getData().getIsp());
                         monitor.setCountry(ip.getData().getCountry());

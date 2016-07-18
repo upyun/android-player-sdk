@@ -291,6 +291,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", isAutoPlay ? 1 : 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
+            mMediaPlayer.setSpeed(1.03f);
 
 
             if (bufferSize != -1) {
