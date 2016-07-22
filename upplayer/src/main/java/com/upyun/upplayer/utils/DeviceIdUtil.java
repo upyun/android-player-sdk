@@ -38,8 +38,10 @@ public class DeviceIdUtil {
 		String m_szWLANMAC = wm.getConnectionInfo().getMacAddress();
 		//5. The BT MAC Address string
 		BluetoothAdapter m_BluetoothAdapter = null; // Local Bluetooth adapter      
-		m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();      
-		String m_szBTMAC = m_BluetoothAdapter.getAddress();
+		m_BluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		String m_szBTMAC = "";
+		if (m_BluetoothAdapter != null)
+			m_szBTMAC = m_BluetoothAdapter.getAddress();
 		
 		//Combined Device ID
 		String m_szLongID = m_szImei + m_szDevIDShort 

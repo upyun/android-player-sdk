@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
 
 import com.upyun.upplayer.model.Monitor;
 import com.upyun.upplayer.utils.DeviceIdUtil;
@@ -35,6 +37,10 @@ public class MonitorRecorder {
     private int bufferLength;
     public static int POSTCOUNT = 0;
 
+    public String mServerPid;
+    public String mServerCid;
+    public String mServerIP;
+
     public MonitorRecorder(Context context) {
         this.mCotext = context;
         this.monitor = new Monitor();
@@ -53,6 +59,21 @@ public class MonitorRecorder {
         }
 
 
+    }
+
+    // 获取pid, cid等
+    public void getMetaData(Bundle bundle) {
+        if (bundle != null) {
+            mServerPid = bundle.getString("srs_pid");
+            mServerCid = bundle.getString("srs_id");
+            mServerIP = bundle.getString("srs_server_ip");
+            Log.d("MonitorRecorder", "srs_pid: " + mServerPid);
+            Log.d("MonitorRecorder", "srs_id: " + mServerCid);
+            Log.d("MonitorRecorder", "srs_server_ip: " + mServerIP);
+            if (mServerPid != null) this.monitor.setServerPid(mServerPid);
+            if (mServerCid != null) this.monitor.setServerCid(mServerCid);
+            if (mServerIP != null) this.monitor.setServerIp(mServerIP);
+        }
     }
 
     public void start() {

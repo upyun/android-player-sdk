@@ -294,7 +294,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
             mMediaPlayer.setSpeed(1.08f);
 
-
             if (bufferSize != -1) {
                 mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", bufferSize);
             }
@@ -405,6 +404,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
             monitorRecorder.setVideoSize(mVideoHeight, mVideoWidth);
             monitorRecorder.setFirstPlayState(0);
+            monitorRecorder.getMetaData(mMediaPlayer._getMetaData());
 
             int seekToPosition = mSeekWhenPrepared;  // mSeekWhenPrepared may be changed after seekTo() call
             if (seekToPosition != 0) {
