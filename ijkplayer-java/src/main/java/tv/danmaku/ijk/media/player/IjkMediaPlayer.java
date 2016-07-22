@@ -832,6 +832,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         return _getMediaMeta();
     }
     private native Bundle _getMediaMeta();
+    public native Bundle _getMetaData();
 
     public static String getColorFormatName(int mediaCodecColorFormat) {
         return _getColorFormatName(mediaCodecColorFormat);
