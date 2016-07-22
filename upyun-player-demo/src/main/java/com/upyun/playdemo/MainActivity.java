@@ -13,8 +13,13 @@ import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
-    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+//    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+//    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
+//    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
+    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
+//    String path = "rtmp://115.231.100.126/live/upyunab";
+//    String path = "/mnt/sdcard/test.mp3";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunaa";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/test131";
 
