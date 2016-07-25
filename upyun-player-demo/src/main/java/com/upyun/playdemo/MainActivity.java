@@ -7,17 +7,19 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.RelativeLayout;
 
 import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
-//    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
 //    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
 //    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
-    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
+//    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
+//    String path = "rtmp://www.zhibo.58youxian.cn/uplive/test111";
 //    String path = "rtmp://115.231.100.126/live/upyunab";
 //    String path = "/mnt/sdcard/test.mp3";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunaa";
@@ -27,11 +29,16 @@ public class MainActivity extends Activity {
     RelativeLayout.LayoutParams mVideoParams;
 
     UpVideoView upVideoView;
+    private EditText mPathEt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mPathEt = (EditText) findViewById(R.id.editText);
+
+        path = mPathEt.getText().toString();
 
         upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
 
@@ -49,6 +56,7 @@ public class MainActivity extends Activity {
     }
 
     public void toggle(View view) {
+
         if (upVideoView.isPlaying()) {
 
             //暂停播放
@@ -62,6 +70,8 @@ public class MainActivity extends Activity {
     }
 
     public void refresh(View view) {
+        path = mPathEt.getText().toString();
+        upVideoView.setVideoPath(path);
 
         // 重新开始播放器
         upVideoView.resume();

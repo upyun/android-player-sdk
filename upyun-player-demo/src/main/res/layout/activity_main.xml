@@ -43,5 +43,14 @@
 
     </LinearLayout>
 
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/editText"
+        android:hint="输入播放地址"
+        android:text="rtmp://live.hkstv.hk.lxdns.com/live/hks"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
 
 </RelativeLayout>
