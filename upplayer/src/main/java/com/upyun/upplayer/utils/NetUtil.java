@@ -155,7 +155,8 @@ public class NetUtil {
             public void run() {
 
                 try {
-                    String host = "60.191.72.5";
+//                    String host = "60.191.72.5";
+                    String host = "uplog.tianchaijz.me";
                     int port = 3100;
                     Socket client = new Socket(host, port);
                     PrintStream out = new PrintStream(client.getOutputStream());

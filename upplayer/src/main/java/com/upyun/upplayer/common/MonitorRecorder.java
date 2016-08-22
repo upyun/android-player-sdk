@@ -101,8 +101,8 @@ public class MonitorRecorder {
         }
 
         this.monitor.setUa(mCotext.getPackageName() + ":" + version);
-//        this.monitor.setNodeType("streaming_media_android_player");
-        this.monitor.setNodeType("streaming_media_ios_player");
+        this.monitor.setNodeType("streaming_media_android_player");
+//        this.monitor.setNodeType("streaming_media_ios_player");
         this.netSpeed = new NetSpeed(mCotext);
     }
 
