@@ -121,6 +121,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int FFP_PROP_INT64_AUDIO_CACHED_BYTES         = 20008;
     public static final int FFP_PROP_INT64_VIDEO_CACHED_PACKETS       = 20009;
     public static final int FFP_PROP_INT64_AUDIO_CACHED_PACKETS       = 20010;
+    public static final int FFP_PROP_INT64_BIT_RATE                   = 20100;
     //----------------------------------------
 
     @AccessedByNative
@@ -752,6 +753,10 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     public long getAudioCachedPackets() {
         return _getPropertyLong(FFP_PROP_INT64_AUDIO_CACHED_PACKETS, 0);
+    }
+
+    public long getBitrate() {
+        return _getPropertyLong(FFP_PROP_INT64_BIT_RATE, 0);
     }
 
     private native float _getPropertyFloat(int property, float defaultValue);
