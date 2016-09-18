@@ -792,7 +792,7 @@ public class SimpleVideoView extends SurfaceView implements MediaController.Medi
                         handler.sendEmptyMessageDelayed(CACHE_TIME, 500);
                     } else {
                         if (isInPlaybackState()) {
-                            setBackground(null);
+                            setBackgroundDrawable(null);
                             mMediaPlayer.start();
                             mCurrentState = STATE_PLAYING;
                         }

@@ -17,7 +17,7 @@ public class MainActivity extends Activity {
     String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
 //    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
 //    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
-       //String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+    //String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
@@ -37,15 +37,13 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mPathEt = (EditText) findViewById(R.id.editText);
 
         path = mPathEt.getText().toString();
 
         upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
-
-        //设置默认缓存区大小 (需在setVideoPath 或者 resume 前执行生效)
-        upVideoView.setBufferSize(0);
 
         //设置背景图片
         upVideoView.setImage(R.drawable.dog);

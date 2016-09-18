@@ -97,6 +97,29 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private int bufferSize = -1;
     private boolean isAutoPlay = false;
 
+    private static final int MSG_CACHE_DRU = 20160101;
+
+    private static final int CACHE_WATER = 1 * 1000;
+
+//    private android.os.Handler mHandler = new android.os.Handler() {
+//        @Override
+//        public void handleMessage(Message msg) {
+//            switch (msg.what) {
+//                case MSG_CACHE_DRU:
+//                    if (mMediaPlayer != null) {
+//
+//                        Log.e(TAG, "audio_cache_time:" + mMediaPlayer.getAudioCachedDuration() + "   audio_cache_size" + mMediaPlayer.getAudioCachedBytes() + "  video_cache_time:" + mMediaPlayer.getVideoCachedDuration() + "  video_cache_size:" + mMediaPlayer.getVideoDecodeFramesPerSecond());
+//                        Log.e(TAG, "audio_cache_pac:" + mMediaPlayer.getAudioCachedPackets() + "  video_cache_pac:" + mMediaPlayer.getAudioCachedPackets());
+//
+//                        if (mMediaPlayer.getAudioCachedDuration() > CACHE_WATER || mMediaPlayer.getVideoCachedDuration() > CACHE_WATER)
+//                            resume();
+//                    }
+//                    mHandler.removeMessages(MSG_CACHE_DRU);
+//                    mHandler.sendEmptyMessageDelayed(MSG_CACHE_DRU, 500);
+//            }
+//        }
+//    };
+
     /** Subtitle rendering widget overlaid on top of the video. */
     // private RenderingWidget mSubtitleWidget;
 
@@ -119,6 +142,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private long bufferTime;
     private long startbufferTime;
     private static int PURSUETIME = 2 * 1000;
+    private boolean isAutoPursue = true;
 
     public boolean isAutoPursue() {
         return isAutoPursue;
@@ -127,9 +151,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     public void setAutoPursue(boolean autoPursue) {
         isAutoPursue = autoPursue;
     }
-
-    private boolean isAutoPursue;
-
 
     public boolean isFullState() {
         return isFullState;
@@ -279,6 +300,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         monitorRecorder.start();
         monitorRecorder.setPlayUrl(mUri.toString());
 
+//        mHandler.removeMessages(MSG_CACHE_DRU);
+//        mHandler.sendEmptyMessageDelayed(MSG_CACHE_DRU, 500);
+
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
@@ -292,7 +316,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
-            mMediaPlayer.setSpeed(1.08f);
+//            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "sync", "ext");
+//            mMediaPlayer.setSpeed(1.08f);
 
             if (bufferSize != -1) {
                 mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", bufferSize);
@@ -472,6 +497,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
+//                            Log.e(TAG, "卡顿时间：" + bufferTime);
                             startbufferTime = System.currentTimeMillis();
                             if (bufferTime > PURSUETIME && isAutoPursue) {
                                 bufferTime = 0;
@@ -483,7 +509,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
                             if (startbufferTime != 0) {
-                                bufferTime += System.currentTimeMillis() - startbufferTime;
+                                bufferTime = System.currentTimeMillis() - startbufferTime;
                             }
                             monitorRecorder.BufferEnd();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
@@ -701,6 +727,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (mMediaPlayer != null) {
             mMediaPlayer.reset();
             mMediaPlayer.release();
+//            mHandler.removeMessages(MSG_CACHE_DRU);
             monitorRecorder.endRecode();
             mMediaPlayer = null;
             // REMOVED: mPendingSubtitleTracks.clear();
