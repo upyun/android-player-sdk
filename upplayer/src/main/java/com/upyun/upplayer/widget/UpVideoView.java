@@ -37,21 +37,32 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
 
+import com.chnvideo.library.Debugger;
+import com.chnvideo.library.Factory;
+import com.chnvideo.library.IDebugger;
+import com.chnvideo.library.MediaInfo;
+import com.chnvideo.library.NetStatusEvent;
+import com.chnvideo.library.UserInfo;
 import com.upyun.upplayer.common.MonitorRecorder;
+
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
+import tv.danmaku.ijk.media.player.IjkMediaMeta;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
-public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
+public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl, Debugger.MediaInfoCapture {
     private String TAG = "UpVideoView";
     // settable by the client
     private Uri mUri;
@@ -152,6 +163,11 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         isAutoPursue = autoPursue;
     }
 
+
+    private IDebugger debugger = null;
+    private boolean isRespondBufferFull = false;
+    private String ua = null;// user agent
+
     public boolean isFullState() {
         return isFullState;
     }
@@ -199,6 +215,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         mTargetState = STATE_IDLE;
 
         monitorRecorder = new MonitorRecorder(mAppContext);
+
+        // user agent
+        WebView webview;
+        webview = new WebView(context);
+        webview.layout(0, 0, 0, 0);
+        WebSettings settings = webview.getSettings();
+        this.ua = settings.getUserAgentString();
     }
 
     public void setRenderView(IRenderView renderView) {
@@ -241,6 +264,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
      */
     public void setVideoPath(String path) {
         setVideoURI(Uri.parse(path));
+        if (debugger == null) {
+            debugger = Factory.createDebugger(this);
+        }
+
+        if (debugger != null) {
+            debugger.setUrl(path);
+        }
     }
 
     /**
@@ -909,7 +939,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     // REMOVED: measureAndLayoutSubtitleWidget();
     // REMOVED: setSubtitleWidget();
     // REMOVED: getSubtitleLooper();
-
     //-------------------------
     // Extend: Aspect Ratio
     //-------------------------
@@ -1065,5 +1094,65 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             return mMediaPlayer.getSpeed(.0f);
         }
         return .0f;
+    }
+
+    @Override
+    public MediaInfo captureMediaInfo() {
+        MediaInfo info = null;
+
+        if (mMediaPlayer != null) {
+            info = new MediaInfo();
+            IjkMediaMeta mediaMeta = IjkMediaMeta.parse(mMediaPlayer.getMediaMeta());
+            if (mediaMeta != null) {
+                info.bitrate = mediaMeta.mBitrate;
+
+                IjkMediaMeta.IjkStreamMeta videoStream = mediaMeta.mVideoStream;
+                if (videoStream != null) {
+                    info.currentFPS = mMediaPlayer.getVideoOutputFramesPerSecond();
+                    info.videoBytesPerSecond = (int) videoStream.mBitrate;
+                }
+
+                info.bufferTime = mMediaPlayer.getVideoCachedDuration() / 1000.0f;
+                info.timeS = mMediaPlayer.getCurrentPosition() / 1000.0f;
+
+                IjkMediaMeta.IjkStreamMeta audioStream = mediaMeta.mAudioStream;
+                if (audioStream != null) {
+                    info.audioBytesPerSecond = (int) audioStream.mBitrate;
+                }
+
+                Log.i(TAG, "videoBytesPerSecond: " + info.videoBytesPerSecond);
+                Log.i(TAG, "audioBytesPerSecond: " + info.audioBytesPerSecond);
+                Log.i(TAG, "currentFPS: " + info.currentFPS);
+                Log.i(TAG, "bitrate: " + info.bitrate);
+                Log.i(TAG, "bufferTime: " + info.bufferTime);
+                Log.i(TAG, "bufferLength: " + info.bufferLength);
+                Log.i(TAG, "bufferTimeMax: " + info.bufferTimeMax);
+                Log.i(TAG, "timeS: " + info.timeS);
+            }
+
+            if (info.bufferTime == 0) {
+                NetStatusEvent event = new NetStatusEvent(NetStatusEvent.BUFFER_EMPTY, "", new JSONObject());
+                debugger.onStatus(event);
+                isRespondBufferFull = true;
+            } else if (info.bufferTime > 0 && isRespondBufferFull) {
+                NetStatusEvent event = new NetStatusEvent(NetStatusEvent.BUFFER_FULL, "", new JSONObject());
+                debugger.onStatus(event);
+                isRespondBufferFull = false;
+            }
+        }
+
+        return info;
+    }
+
+    @Override
+    public UserInfo captureUserInfo() {
+        UserInfo info = new UserInfo();
+
+        info.ua = this.ua;
+        info.ref = "";
+        info.ref2 = "";
+
+        Log.e(TAG, "user-agent:" + info.ua);
+        return info;
     }
 }

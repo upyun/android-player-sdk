@@ -55,6 +55,42 @@ android-player-sdk 是一个适用于 Android 平台的影音播发器 SDK ，�
 
 Android 2.3 (API 9) 及其以上
 
+## 版本历史
+
+0.1.0 基本的直播播放器
+
+* 支持rtmp, hls, http-flv
+
+0.2.0 统计信息，增加播放控制
+
+* 增加统计信息的获取和上传
+
+* 支持调整宽高比
+
+* 增加缓冲区控制
+
+* 增加全屏播放和断线重连
+
+0.3.0 完善统计功能，单音频播放
+
+* 增加pid,cid等统计参数
+
+* 支持单音频播放，speex格式解码
+
+* 播放器秒开优化
+
+0.4.0 累积延迟，性能优化
+
+* 播放器累积延时优化
+
+* 播放器内存消耗优化
+
+* 播放器apk大小精简至6M（不含speex）
+
+0.5.0 添加动态追帧 (9.18)
+
+* 播放器添加动态追帧
+
 ## 说明
 SDK 目前基于 [ijkplayer](https://github.com/Bilibili/ijkplayer) , 感谢 [ijkplayer](https://github.com/Bilibili/ijkplayer)。
 
