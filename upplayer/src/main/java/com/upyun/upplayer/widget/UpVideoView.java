@@ -43,6 +43,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
+import android.widget.TableLayout;
 
 import com.chnvideo.library.Debugger;
 import com.chnvideo.library.Factory;
@@ -111,6 +112,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private static final int MSG_CACHE_DRU = 20160101;
 
     private static final int CACHE_WATER = 1 * 1000;
+
+    private InfoHudViewHolder mHudViewHolder;
+    private long mPrepareStartTime = 0;
+    private long mPrepareEndTime = 0;
+
+    private long mSeekStartTime = 0;
+    private long mSeekEndTime = 0;
 
 //    private android.os.Handler mHandler = new android.os.Handler() {
 //        @Override
@@ -192,7 +200,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         super(context, attrs, defStyleAttr, defStyleRes);
         initVideoView(context);
     }
-
+    
     // REMOVED: onMeasure
     // REMOVED: onInitializeAccessibilityEvent
     // REMOVED: onInitializeAccessibilityNodeInfo
@@ -309,6 +317,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.stop();
             mMediaPlayer.release();
             mMediaPlayer = null;
+            if (mHudViewHolder != null)
+                mHudViewHolder.setMediaPlayer(null);
             mCurrentState = STATE_IDLE;
             mTargetState = STATE_IDLE;
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
@@ -344,7 +354,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", isAutoPlay ? 1 : 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
-            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
 //            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "sync", "ext");
 //            mMediaPlayer.setSpeed(1.08f);
@@ -374,7 +384,10 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             bindSurfaceHolder(mMediaPlayer, mSurfaceHolder);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
+            mPrepareStartTime = System.currentTimeMillis();
             mMediaPlayer.prepareAsync();
+            if (mHudViewHolder != null)
+                mHudViewHolder.setMediaPlayer(mMediaPlayer);
 
             if (playSpeed != .0f) {
                 mMediaPlayer.setSpeed(playSpeed);
@@ -441,6 +454,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
+            mPrepareEndTime = System.currentTimeMillis();
+            mHudViewHolder.updateLoadCost(mPrepareEndTime - mPrepareStartTime);
             monitorRecorder.firstPacket();
             mCurrentState = STATE_PREPARED;
             mMediaPlayer.pause();
@@ -637,6 +652,15 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                     mCurrentBufferPercentage = percent;
                 }
             };
+
+    private IMediaPlayer.OnSeekCompleteListener mSeekCompleteListener = new IMediaPlayer.OnSeekCompleteListener() {
+
+        @Override
+        public void onSeekComplete(IMediaPlayer mp) {
+            mSeekEndTime = System.currentTimeMillis();
+            mHudViewHolder.updateSeekCost(mSeekEndTime - mSeekStartTime);
+        }
+    };
 
     /**
      * Register a callback to be invoked when the media file
@@ -884,6 +908,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public void seekTo(int msec) {
         if (isInPlaybackState()) {
+            mSeekStartTime = System.currentTimeMillis();
             mMediaPlayer.seekTo(msec);
             mSeekWhenPrepared = 0;
         } else {
@@ -1154,5 +1179,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
         Log.e(TAG, "user-agent:" + info.ua);
         return info;
+    }
+
+    public void setHudView(TableLayout tableLayout) {
+        mHudViewHolder = new InfoHudViewHolder(getContext(), tableLayout);
     }
 }

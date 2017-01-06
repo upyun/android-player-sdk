@@ -122,6 +122,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int FFP_PROP_INT64_VIDEO_CACHED_PACKETS       = 20009;
     public static final int FFP_PROP_INT64_AUDIO_CACHED_PACKETS       = 20010;
     public static final int FFP_PROP_INT64_BIT_RATE                   = 20100;
+    public static final int FFP_PROP_INT64_TCP_SPEED                  = 20200;
+    public static final int FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION  = 20300;
     //----------------------------------------
 
     @AccessedByNative
@@ -759,6 +761,14 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         return _getPropertyLong(FFP_PROP_INT64_BIT_RATE, 0);
     }
 
+    public long getTcpSpeed() {
+        return _getPropertyLong(FFP_PROP_INT64_TCP_SPEED, 0);
+    }
+
+    public long getSeekLoadDuration() {
+        return _getPropertyLong(FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION, 0);
+    }
+
     private native float _getPropertyFloat(int property, float defaultValue);
     private native void  _setPropertyFloat(int property, float value);
     private native long  _getPropertyLong(int property, long defaultValue);
@@ -1173,4 +1183,30 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static native void native_profileBegin(String libName);
     public static native void native_profileEnd();
     public static native void native_setLogLevel(int level);
+
+    private native void _setAudioDataCallback();
+    private native void _delAudioDataCallback();
+
+    private OnAudioDataCallback mAudioDataCallback = null;
+
+    public void setOnAudioDataCallback(OnAudioDataCallback callback) {
+        if (callback != null) {
+            this.mAudioDataCallback = callback;
+            _setAudioDataCallback();
+        } else {
+            this.mAudioDataCallback = null;
+            _delAudioDataCallback();
+        }
+    }
+
+    public interface OnAudioDataCallback {
+        void onAudioData(byte[] audio_data, int len);
+    }
+
+    // audio data callback
+    public void audioCallback(byte[] audio_data, int data_size) {
+        if (mAudioDataCallback != null) {
+            mAudioDataCallback.onAudioData(audio_data, data_size);
+        }
+    }
 }

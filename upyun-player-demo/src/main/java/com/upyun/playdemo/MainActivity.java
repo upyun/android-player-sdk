@@ -6,18 +6,23 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.TableLayout;
+import android.widget.TextView;
 
 import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
-    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+//    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunb";
 //    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
 //    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
-    //String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+//    String path = "/mnt/sdcard/storage/emulated/0/2651H.mp4";
+//    String path = "/mnt/sdcard/videotest/2641H.mp4";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunab";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
@@ -32,27 +37,58 @@ public class MainActivity extends Activity {
 
     UpVideoView upVideoView;
     private EditText mPathEt;
+    private TableLayout mHudView;
+    private TextView mPlayInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mPathEt = (EditText) findViewById(R.id.editText);
-
-        path = mPathEt.getText().toString();
+        mHudView = (TableLayout) findViewById(R.id.hud_view);
+        mPlayInfo = (TextView) findViewById(R.id.tv_info);
+        mPlayInfo.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                if (mHudView.getVisibility() == View.VISIBLE) {
+                    mHudView.setVisibility(View.GONE);
+                } else {
+                    mHudView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
 
         upVideoView = (UpVideoView) findViewById(R.id.uvv_vido);
+        upVideoView.setHudView(mHudView);
 
         //设置背景图片
-        upVideoView.setImage(R.drawable.dog);
+//        upVideoView.setImage(R.drawable.dog);
 
         //设置播放地址
         upVideoView.setVideoPath(path);
 
         //开始播放
         upVideoView.start();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // 重新开始播放器
+        upVideoView.resume();
+        upVideoView.start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        upVideoView.pause();
     }
 
     public void toggle(View view) {
