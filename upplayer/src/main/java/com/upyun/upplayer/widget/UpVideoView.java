@@ -455,7 +455,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     IMediaPlayer.OnPreparedListener mPreparedListener = new IMediaPlayer.OnPreparedListener() {
         public void onPrepared(IMediaPlayer mp) {
             mPrepareEndTime = System.currentTimeMillis();
-            mHudViewHolder.updateLoadCost(mPrepareEndTime - mPrepareStartTime);
+            if (mHudViewHolder != null) {
+                mHudViewHolder.updateLoadCost(mPrepareEndTime - mPrepareStartTime);
+            }
             monitorRecorder.firstPacket();
             mCurrentState = STATE_PREPARED;
             mMediaPlayer.pause();
@@ -658,7 +660,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         @Override
         public void onSeekComplete(IMediaPlayer mp) {
             mSeekEndTime = System.currentTimeMillis();
-            mHudViewHolder.updateSeekCost(mSeekEndTime - mSeekStartTime);
+            if (mHudViewHolder != null) {
+                mHudViewHolder.updateSeekCost(mSeekEndTime - mSeekStartTime);
+            }
         }
     };
 
@@ -1052,8 +1056,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (isFullState) {
             if (activity.getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
                 activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN,
-                        WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
             }
             setLayoutParams(mRawParams);
             isFullState = false;
