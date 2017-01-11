@@ -91,6 +91,12 @@ Android 2.3 (API 9) 及其以上
 
 * 播放器添加动态追帧
 
+0.6.0 h265 & 音频数据接口（1.6）
+
+* 支持h265播放
+
+* 增加获取音频数据接口
+
 ## 说明
 SDK 目前基于 [ijkplayer](https://github.com/Bilibili/ijkplayer) , 感谢 [ijkplayer](https://github.com/Bilibili/ijkplayer)。
 
