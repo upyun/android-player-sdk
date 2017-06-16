@@ -56,6 +56,7 @@ import com.upyun.upplayer.common.MonitorRecorder;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
@@ -107,7 +108,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private boolean mCanSeekForward = true;
 
     private int bufferSize = -1;
-    private boolean isAutoPlay = false;
+    private boolean isAutoPlay = true;
 
     private static final int MSG_CACHE_DRU = 20160101;
 
@@ -160,7 +161,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     private long bufferTime;
     private long startbufferTime;
-    private static int PURSUETIME = 2 * 1000;
+    private static int PURSUETIME = 10 * 1000;
     private boolean isAutoPursue = true;
 
     public boolean isAutoPursue() {
@@ -200,7 +201,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         super(context, attrs, defStyleAttr, defStyleRes);
         initVideoView(context);
     }
-    
+
     // REMOVED: onMeasure
     // REMOVED: onInitializeAccessibilityEvent
     // REMOVED: onInitializeAccessibilityNodeInfo
@@ -302,6 +303,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
      */
     private void setVideoURI(Uri uri, Map<String, String> headers) {
         mUri = uri;
+
+        if (uri.toString().startsWith("http")) {
+            if (headers == null) {
+                headers = new HashMap<>();
+            }
+            headers.put("X-Accept-Video-Encoding", "h265");
+        }
+
         mHeaders = headers;
         mSeekWhenPrepared = 0;
         openVideo();
@@ -353,11 +362,13 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", IjkMediaPlayer.SDL_FCC_RV32);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 1);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", isAutoPlay ? 1 : 0);
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", 1024 * 400);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
+//            mMediaPlayer.setLooping(true);
 //            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "sync", "ext");
-//            mMediaPlayer.setSpeed(1.08f);
+            mMediaPlayer.setSpeed(1.03f);
 
             if (bufferSize != -1) {
                 mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", bufferSize);
@@ -544,20 +555,27 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
-//                            Log.e(TAG, "卡顿时间：" + bufferTime);
+                            Log.e(TAG, "卡顿时间：" + bufferTime);
                             startbufferTime = System.currentTimeMillis();
                             if (bufferTime > PURSUETIME && isAutoPursue) {
                                 bufferTime = 0;
                                 resume();
                                 Log.e(TAG, "卡顿重连追帧");
                             }
-                            monitorRecorder.BufferStart();
+                            reportError();
+
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
                             if (startbufferTime != 0) {
                                 bufferTime = System.currentTimeMillis() - startbufferTime;
+                                Log.e(TAG, "结束缓冲：" + bufferTime);
+                                if (bufferTime > 2000) {
+                                    bufferTime = 0;
+                                    resume();
+                                }
                             }
+                            cancelReport();
                             monitorRecorder.BufferEnd();
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_END:");
                             break;
@@ -768,7 +786,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             // REMOVED: release(true);
 //            releaseWithoutStop();
             if (mMediaController != null) mMediaController.hide();
-            release(true);
+//            release(true);
+            releaseWithoutStop();
         }
     };
 
@@ -1186,4 +1205,22 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     public void setHudView(TableLayout tableLayout) {
         mHudViewHolder = new InfoHudViewHolder(getContext(), tableLayout);
     }
+
+    private void reportError() {
+        Log.e(TAG, "reportError");
+        postDelayed(reconnection, 20000);
+    }
+
+    private void cancelReport() {
+        Log.e(TAG, "cancelReport");
+        removeCallbacks(reconnection);
+    }
+
+    private Runnable reconnection = new Runnable() {
+        @Override
+        public void run() {
+            release(true);
+            mOnErrorListener.onError(mMediaPlayer, -1001, 0);
+        }
+    };
 }

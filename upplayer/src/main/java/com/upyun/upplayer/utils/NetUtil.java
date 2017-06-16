@@ -106,9 +106,7 @@ public class NetUtil {
                         monitor.setProvince(ip.getData().getRegion());
                         monitor.setCountry(ip.getData().getCity());
                     }
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     if (urlConnection != null) {
