@@ -17,7 +17,7 @@ import com.upyun.upplayer.widget.UpVideoView;
 
 public class MainActivity extends Activity {
 
-//    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunb";
+    //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunb";
 //    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
 //    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
     String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
@@ -52,7 +52,7 @@ public class MainActivity extends Activity {
         mPathEt = (EditText) findViewById(R.id.editText);
         mHudView = (TableLayout) findViewById(R.id.hud_view);
         mPlayInfo = (TextView) findViewById(R.id.tv_info);
-        mPlayInfo.setOnClickListener(new View.OnClickListener(){
+        mPlayInfo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mHudView.getVisibility() == View.VISIBLE) {
@@ -108,9 +108,6 @@ public class MainActivity extends Activity {
     public void refresh(View view) {
         path = mPathEt.getText().toString();
         upVideoView.setVideoPath(path);
-
-        // 重新开始播放器
-        upVideoView.resume();
         upVideoView.start();
     }
 

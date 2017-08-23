@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.upyun.playerdemo"
-        minSdkVersion 9
+        minSdkVersion 10
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
@@ -17,6 +17,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    defaultConfig {
+        ndk {
+            abiFilters "armeabi", "armeabi-v7a"
+        }
+    }
 }
 
 dependencies {
@@ -24,4 +29,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile project(':upplayer')
+    // bugly
+    compile 'com.tencent.bugly:crashreport:latest.release'
+    compile 'com.tencent.bugly:nativecrashreport:latest.release'
 }

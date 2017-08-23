@@ -45,26 +45,18 @@ import android.widget.MediaController;
 import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 
-import com.chnvideo.library.Debugger;
-import com.chnvideo.library.Factory;
-import com.chnvideo.library.IDebugger;
-import com.chnvideo.library.MediaInfo;
-import com.chnvideo.library.NetStatusEvent;
-import com.chnvideo.library.UserInfo;
 import com.upyun.upplayer.common.MonitorRecorder;
 
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
-import tv.danmaku.ijk.media.player.IjkMediaMeta;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 
-public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl, Debugger.MediaInfoCapture {
+public class UpVideoView extends FrameLayout implements MediaController.MediaPlayerControl {
     private String TAG = "UpVideoView";
     // settable by the client
     private Uri mUri;
@@ -172,9 +164,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         isAutoPursue = autoPursue;
     }
 
-
-    private IDebugger debugger = null;
-    private boolean isRespondBufferFull = false;
     private String ua = null;// user agent
 
     public boolean isFullState() {
@@ -273,13 +262,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
      */
     public void setVideoPath(String path) {
         setVideoURI(Uri.parse(path));
-        if (debugger == null) {
-            debugger = Factory.createDebugger(this);
-        }
-
-        if (debugger != null) {
-            debugger.setUrl(path);
-        }
     }
 
     /**
@@ -365,7 +347,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", 1024 * 400);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
             mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 0);
-            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "4096");
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", "64000");
+            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec_mpeg4", 1);
 //            mMediaPlayer.setLooping(true);
 //            mMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "sync", "ext");
             mMediaPlayer.setSpeed(1.03f);
@@ -487,7 +470,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
             monitorRecorder.setVideoSize(mVideoHeight, mVideoWidth);
             monitorRecorder.setFirstPlayState(0);
-            monitorRecorder.getMetaData(mMediaPlayer._getMetaData());
+//            monitorRecorder.getMetaData(mMediaPlayer._getMetaData());
 
             int seekToPosition = mSeekWhenPrepared;  // mSeekWhenPrepared may be changed after seekTo() call
             if (seekToPosition != 0) {
@@ -1142,66 +1125,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         return .0f;
     }
 
-    @Override
-    public MediaInfo captureMediaInfo() {
-        MediaInfo info = null;
-
-        if (mMediaPlayer != null) {
-            info = new MediaInfo();
-            IjkMediaMeta mediaMeta = IjkMediaMeta.parse(mMediaPlayer.getMediaMeta());
-            if (mediaMeta != null) {
-                info.bitrate = mediaMeta.mBitrate;
-
-                IjkMediaMeta.IjkStreamMeta videoStream = mediaMeta.mVideoStream;
-                if (videoStream != null) {
-                    info.currentFPS = mMediaPlayer.getVideoOutputFramesPerSecond();
-                    info.videoBytesPerSecond = (int) videoStream.mBitrate;
-                }
-
-                info.bufferTime = mMediaPlayer.getVideoCachedDuration() / 1000.0f;
-                info.timeS = mMediaPlayer.getCurrentPosition() / 1000.0f;
-
-                IjkMediaMeta.IjkStreamMeta audioStream = mediaMeta.mAudioStream;
-                if (audioStream != null) {
-                    info.audioBytesPerSecond = (int) audioStream.mBitrate;
-                }
-
-                Log.i(TAG, "videoBytesPerSecond: " + info.videoBytesPerSecond);
-                Log.i(TAG, "audioBytesPerSecond: " + info.audioBytesPerSecond);
-                Log.i(TAG, "currentFPS: " + info.currentFPS);
-                Log.i(TAG, "bitrate: " + info.bitrate);
-                Log.i(TAG, "bufferTime: " + info.bufferTime);
-                Log.i(TAG, "bufferLength: " + info.bufferLength);
-                Log.i(TAG, "bufferTimeMax: " + info.bufferTimeMax);
-                Log.i(TAG, "timeS: " + info.timeS);
-            }
-
-            if (info.bufferTime == 0) {
-                NetStatusEvent event = new NetStatusEvent(NetStatusEvent.BUFFER_EMPTY, "", new JSONObject());
-                debugger.onStatus(event);
-                isRespondBufferFull = true;
-            } else if (info.bufferTime > 0 && isRespondBufferFull) {
-                NetStatusEvent event = new NetStatusEvent(NetStatusEvent.BUFFER_FULL, "", new JSONObject());
-                debugger.onStatus(event);
-                isRespondBufferFull = false;
-            }
-        }
-
-        return info;
-    }
-
-    @Override
-    public UserInfo captureUserInfo() {
-        UserInfo info = new UserInfo();
-
-        info.ua = this.ua;
-        info.ref = "";
-        info.ref2 = "";
-
-        Log.e(TAG, "user-agent:" + info.ua);
-        return info;
-    }
-
     public void setHudView(TableLayout tableLayout) {
         mHudViewHolder = new InfoHudViewHolder(getContext(), tableLayout);
     }
@@ -1220,7 +1143,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         @Override
         public void run() {
             release(true);
-            mOnErrorListener.onError(mMediaPlayer, -1001, 0);
+            mErrorListener.onError(mMediaPlayer, -1001, 0);
         }
     };
 }
