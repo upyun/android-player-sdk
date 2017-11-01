@@ -22,11 +22,16 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
+import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -34,19 +39,21 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 
+import com.upyun.upplayer.R;
 import com.upyun.upplayer.common.MonitorRecorder;
-
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -94,6 +101,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private int mCurrentBufferPercentage;
     private IMediaPlayer.OnErrorListener mOnErrorListener;
     private IMediaPlayer.OnInfoListener mOnInfoListener;
+    private IMediaPlayer.OnVideoSizeChangedListener mOnVideoSizeChangedListener;
+    private IjkMediaPlayer.OnNativeInvokeListener mOnNativeInvokeListener;
     private int mSeekWhenPrepared;  // recording the seek position while preparing
     private boolean mCanPause = true;
     private boolean mCanSeekBack = true;
@@ -112,6 +121,30 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     private long mSeekStartTime = 0;
     private long mSeekEndTime = 0;
+
+
+    // OnNativeInvokeListener what
+    public static final int AVAPP_EVENT_WILL_HTTP_OPEN = 1; //AVAppHttpEvent
+    public static final int AVAPP_EVENT_DID_HTTP_OPEN = 2; //AVAppHttpEvent
+    public static final int AVAPP_EVENT_WILL_HTTP_SEEK = 3; //AVAppHttpEvent
+    public static final int AVAPP_EVENT_DID_HTTP_SEEK = 4; //AVAppHttpEvent
+
+    public static final int AVAPP_EVENT_ASYNC_STATISTIC = 0x11000; //AVAppAsyncStatistic
+    public static final int AVAPP_EVENT_ASYNC_READ_SPEED = 0x11001; //AVAppAsyncReadSpeed
+    public static final int AVAPP_EVENT_IO_TRAFFIC = 0x12204; //AVAppIOTraffic
+
+    public static final int AVAPP_CTRL_WILL_TCP_OPEN = 0x20001; //AVAppTcpIOControl
+    public static final int AVAPP_CTRL_DID_TCP_OPEN = 0x20002; //AVAppTcpIOControl
+
+    public static final int AVAPP_CTRL_WILL_HTTP_OPEN = 0x20003; //AVAppIOControl
+    public static final int AVAPP_CTRL_WILL_LIVE_OPEN = 0x20005; //AVAppIOControl
+
+    public static final int AVAPP_CTRL_WILL_CONCAT_SEGMENT_OPEN = 0x20007; //AVAppIOControl
+    // OnNativeInvokeListener bundle key
+    public static final String AVAPP_EVENT_URL = "url";
+    public static final String AVAPP_EVENT_ERROR = "error";
+    public static final String AVAPP_EVENT_HTTP_CODE = "http_code";
+
 
 //    private android.os.Handler mHandler = new android.os.Handler() {
 //        @Override
@@ -142,6 +175,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     private Context mAppContext;
     private IRenderView mRenderView;
+    // 用于界面恢复后展示上一次播放的最后一帧画面
+    private ImageView mImageView;
     private int mVideoSarNum;
     private int mVideoSarDen;
 
@@ -154,7 +189,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     private long bufferTime;
     private long startbufferTime;
     private static int PURSUETIME = 10 * 1000;
-    private boolean isAutoPursue = true;
+    private boolean isAutoPursue = false;
+    private boolean mRenderWithTextureView;
 
     public boolean isAutoPursue() {
         return isAutoPursue;
@@ -172,23 +208,23 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
 
     public UpVideoView(Context context) {
         super(context);
-        initVideoView(context);
+        initVideoView(context, null);
     }
 
     public UpVideoView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        initVideoView(context);
+        initVideoView(context, attrs);
     }
 
     public UpVideoView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        initVideoView(context);
+        initVideoView(context, attrs);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public UpVideoView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
-        initVideoView(context);
+        initVideoView(context, attrs);
     }
 
     // REMOVED: onMeasure
@@ -196,9 +232,22 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     // REMOVED: onInitializeAccessibilityNodeInfo
     // REMOVED: resolveAdjustedSize
 
-    private void initVideoView(Context context) {
+    private void initVideoView(Context context, AttributeSet attrs) {
+        if (attrs != null) {
+            TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.up_video_view);
+            mRenderWithTextureView = ta.getBoolean(R.styleable.up_video_view_render_with_texture, false);
+            ta.recycle();
+        }
+
         mAppContext = context.getApplicationContext();
-        SurfaceRenderView renderView = new SurfaceRenderView(getContext());
+        IRenderView renderView;
+        if (mRenderWithTextureView) {
+            Log.i(TAG, "RenderWithTextureView true");
+            renderView = new TextureRenderView(getContext());
+        } else {
+            Log.i(TAG, "RenderWithTextureView false");
+            renderView = new SurfaceRenderView(getContext());
+        }
         setRenderView(renderView);
 
         mVideoWidth = 0;
@@ -220,12 +269,28 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         webview.layout(0, 0, 0, 0);
         WebSettings settings = webview.getSettings();
         this.ua = settings.getUserAgentString();
+        addImageView();
+    }
+
+    private void addImageView() {
+        // 用于界面恢复后展示上一次播放的最后一帧画面
+        if (mImageView != null) {
+            return;
+        }
+        mImageView = new ImageView(getContext());
+        LayoutParams lp = new LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER);
+        mImageView.setLayoutParams(lp);
+        addView(mImageView);
+        mImageView.setVisibility(View.GONE);
     }
 
     public void setRenderView(IRenderView renderView) {
         if (mRenderView != null) {
             if (mMediaPlayer != null)
-                mMediaPlayer.setDisplay(null);
+                mMediaPlayer.setSurface(null);
 
             View renderUIView = mRenderView.getView();
             mRenderView.removeRenderCallback(mSHCallback);
@@ -307,6 +372,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         if (mMediaPlayer != null) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
+            drawBlack();
             mMediaPlayer = null;
             if (mHudViewHolder != null)
                 mHudViewHolder.setMediaPlayer(null);
@@ -314,6 +380,25 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mTargetState = STATE_IDLE;
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
+        }
+    }
+
+    private void drawBlack() {
+        if (mSurfaceHolder != null) {
+            Surface surface;
+            if (mSurfaceHolder.getSurfaceHolder() != null) {
+                Canvas canvas = mSurfaceHolder.getSurfaceHolder().lockCanvas();
+                if (canvas != null) {
+                    canvas.drawColor(Color.BLACK);
+                    mSurfaceHolder.getSurfaceHolder().unlockCanvasAndPost(canvas);
+                }
+            } else if ((surface = mSurfaceHolder.openSurface()) != null) {
+                Canvas canvas = surface.lockCanvas(null);
+                if (canvas != null) {
+                    canvas.drawColor(Color.BLACK);
+                    surface.unlockCanvasAndPost(canvas);
+                }
+            }
         }
     }
 
@@ -367,6 +452,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
             mMediaPlayer.setOnCompletionListener(mCompletionListener);
             mMediaPlayer.setOnErrorListener(mErrorListener);
+            mMediaPlayer.setOnNativeInvokeListener(mNativeInvokeListener);
             mMediaPlayer.setOnInfoListener(mInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
             mCurrentBufferPercentage = 0;
@@ -431,6 +517,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     IMediaPlayer.OnVideoSizeChangedListener mSizeChangedListener =
             new IMediaPlayer.OnVideoSizeChangedListener() {
                 public void onVideoSizeChanged(IMediaPlayer mp, int width, int height, int sarNum, int sarDen) {
+                    if (mOnVideoSizeChangedListener != null) {
+                        mOnVideoSizeChangedListener.onVideoSizeChanged(mp, width, height, sarNum, sarDen);
+                    }
                     mVideoWidth = mp.getVideoWidth();
                     mVideoHeight = mp.getVideoHeight();
                     mVideoSarNum = mp.getVideoSarNum();
@@ -524,6 +613,17 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 }
             };
 
+    private IjkMediaPlayer.OnNativeInvokeListener mNativeInvokeListener = new IjkMediaPlayer.OnNativeInvokeListener() {
+        @Override
+        public boolean onNativeInvoke(int what, Bundle args) {
+            Log.i(TAG, "onNativeInvoke:" + what);
+            if (mOnNativeInvokeListener != null) {
+                mOnNativeInvokeListener.onNativeInvoke(what, args);
+            }
+            return false;
+        }
+    };
+
     private IMediaPlayer.OnInfoListener mInfoListener =
             new IMediaPlayer.OnInfoListener() {
                 public boolean onInfo(IMediaPlayer mp, int arg1, int arg2) {
@@ -536,6 +636,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             break;
                         case IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
                             Log.d(TAG, "MEDIA_INFO_VIDEO_RENDERING_START:");
+                            dismissLastFrame();
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
                             Log.e(TAG, "卡顿时间：" + bufferTime);
@@ -543,16 +644,19 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                             if (bufferTime > PURSUETIME && isAutoPursue) {
                                 bufferTime = 0;
                                 resume();
-                                Log.e(TAG, "卡顿重连追帧");
+                                Log.i(TAG, "卡顿重连追帧");
+                                break;
                             }
-                            reportError();
+                            if (isAutoPursue) {
+                                reportError();
+                            }
 
                             Log.d(TAG, "MEDIA_INFO_BUFFERING_START:");
                             break;
                         case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
-                            if (startbufferTime != 0) {
+                            Log.i(TAG, "结束缓冲：" + bufferTime);
+                            if (startbufferTime != 0 && isAutoPursue) {
                                 bufferTime = System.currentTimeMillis() - startbufferTime;
-                                Log.e(TAG, "结束缓冲：" + bufferTime);
                                 if (bufferTime > 2000) {
                                     bufferTime = 0;
                                     resume();
@@ -595,10 +699,14 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 }
             };
 
+    private void dismissLastFrame() {
+        mImageView.setVisibility(View.GONE);
+    }
+
     private IMediaPlayer.OnErrorListener mErrorListener =
             new IMediaPlayer.OnErrorListener() {
                 public boolean onError(IMediaPlayer mp, int framework_err, int impl_err) {
-                    Log.d(TAG, "Error: " + framework_err + "," + impl_err);
+                    Log.e(TAG, "Error: " + framework_err + "," + impl_err);
 
                     monitorRecorder.errorDate("Error: " + framework_err + "," + impl_err);
 
@@ -709,18 +817,33 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
         mOnInfoListener = l;
     }
 
+
+    public void setOnVideoSizeListener(IMediaPlayer.OnVideoSizeChangedListener l) {
+        mOnVideoSizeChangedListener = l;
+    }
+
+    /**
+     * @see AVAPP_EVENT_WILL_HTTP_OPEN
+     * @see AVAPP_EVENT_HTTP_CODE
+     * @param l
+     */
+    public void setOnNativeInvokeListener(IjkMediaPlayer.OnNativeInvokeListener l) {
+        mOnNativeInvokeListener = l;
+    }
+
     // REMOVED: mSHCallback
     private void bindSurfaceHolder(IMediaPlayer mp, IRenderView.ISurfaceHolder holder) {
         if (mp == null)
             return;
 
         if (holder == null) {
-            mp.setDisplay(null);
+            mp.setSurface(null);
             return;
         }
 
         holder.bindToMediaPlayer(mp);
     }
+
 
     IRenderView.IRenderCallback mSHCallback = new IRenderView.IRenderCallback() {
         @Override
@@ -729,7 +852,7 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 Log.e(TAG, "onSurfaceChanged: unmatched render callback\n");
                 return;
             }
-
+            Log.i(TAG, "onSurfaceChanged");
             mSurfaceWidth = w;
             mSurfaceHeight = h;
             boolean isValidState = (mTargetState == STATE_PLAYING);
@@ -748,12 +871,26 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 Log.e(TAG, "onSurfaceCreated: unmatched render callback\n");
                 return;
             }
-
             mSurfaceHolder = holder;
-            if (mMediaPlayer != null)
+            if (mMediaPlayer != null) {
                 bindSurfaceHolder(mMediaPlayer, holder);
-            else
-                openVideo();
+            } else {
+                // onSurfaceCreated在调用过start之后触发
+                if (mTargetState == STATE_PLAYING) {
+                    openVideo();
+                    if (mMediaPlayer != null) {
+                        bindSurfaceHolder(mMediaPlayer, holder);
+                        mCurrentState = STATE_PLAYING;
+                        start();
+                    }
+                }
+            }
+
+            Bitmap lastFrame = mRenderView.getLastFrame();
+            if (lastFrame != null) {
+                mImageView.setImageBitmap(lastFrame);
+                mImageView.setVisibility(View.VISIBLE);
+            }
         }
 
         @Override
@@ -762,7 +899,6 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 Log.e(TAG, "onSurfaceDestroyed: unmatched render callback\n");
                 return;
             }
-
             // after we return from this we can't use the surface any more
             mSurfaceHolder = null;
             // REMOVED: if (mMediaController != null) mMediaController.hide();
@@ -775,8 +911,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     };
 
     public void releaseWithoutStop() {
-        if (mMediaPlayer != null)
-            mMediaPlayer.setDisplay(null);
+        if (mMediaPlayer != null){
+            mMediaPlayer.setSurface(null);
+        }
     }
 
     /*
@@ -868,12 +1005,16 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public void start() {
         if (isInPlaybackState()) {
+            dismissLastFrame();
             mMediaPlayer.start();
             mCurrentState = STATE_PLAYING;
             mRenderView.getView().setBackgroundDrawable(null);
+        } else {
+            Log.i(TAG, "start isInPlaybackState false mMediaPlayer == null:" + (mMediaPlayer == null) + " mCurrentState" + mCurrentState);
         }
         mTargetState = STATE_PLAYING;
     }
+
 
     @Override
     public void pause() {
@@ -906,6 +1047,9 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public int getCurrentPosition() {
         if (isInPlaybackState()) {
+            if (mCurrentState == STATE_PLAYBACK_COMPLETED) {
+                return (int) mMediaPlayer.getDuration();
+            }
             return (int) mMediaPlayer.getCurrentPosition();
         }
         return 0;
@@ -1034,8 +1178,8 @@ public class UpVideoView extends FrameLayout implements MediaController.MediaPla
                 fullParams = new RelativeLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
             } else if (mRawParams instanceof LinearLayout.LayoutParams) {
                 fullParams = new LinearLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
-            } else if (mRawParams instanceof FrameLayout.LayoutParams) {
-                fullParams = new FrameLayout.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+            } else if (mRawParams instanceof LayoutParams) {
+                fullParams = new LayoutParams(metrics.widthPixels, metrics.heightPixels);
             } else {
                 new AlertDialog.Builder(getContext())
                         .setMessage("nonsupport parent layout, please do it by yourself")

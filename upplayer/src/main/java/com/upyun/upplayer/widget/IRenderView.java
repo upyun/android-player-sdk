@@ -16,6 +16,7 @@
 
 package com.upyun.upplayer.widget;
 
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -44,6 +45,8 @@ public interface IRenderView {
     void setVideoRotation(int degree);
 
     void setAspectRatio(int aspectRatio);
+
+    Bitmap getLastFrame();
 
     void addRenderCallback(@NonNull IRenderCallback callback);
 

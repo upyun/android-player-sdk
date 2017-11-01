@@ -18,6 +18,7 @@ package com.upyun.upplayer.widget;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -112,6 +113,12 @@ public class SurfaceRenderView extends SurfaceView implements IRenderView {
     }
 
     @Override
+    public Bitmap getLastFrame() {
+        Log.e("", "SurfaceView doesn't support getLastFrame");
+        return null;
+    }
+
+    @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         mMeasureHelper.doMeasure(widthMeasureSpec, heightMeasureSpec);
         setMeasuredDimension(mMeasureHelper.getMeasuredWidth(), mMeasureHelper.getMeasuredHeight());
@@ -121,7 +128,7 @@ public class SurfaceRenderView extends SurfaceView implements IRenderView {
     // SurfaceViewHolder
     //--------------------
 
-    private static final class InternalSurfaceHolder implements IRenderView.ISurfaceHolder {
+    private static final class InternalSurfaceHolder implements ISurfaceHolder {
         private SurfaceRenderView mSurfaceView;
         private SurfaceHolder mSurfaceHolder;
 
