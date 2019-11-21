@@ -2,11 +2,16 @@
 
 buildscript {
     repositories {
+        google()
         jcenter()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
     }
     dependencies {
 //        classpath 'com.android.tools.build:gradle:1.5.0'
-        classpath 'com.android.tools.build:gradle:2.2.2'
+        classpath 'com.android.tools.build:gradle:3.5.2'
 //        classpath 'com.android.tools.build:gradle-experimental:0.1.0'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -16,15 +21,23 @@ buildscript {
 
 allprojects {
     repositories {
+        google()
         jcenter()
+        maven {
+            url 'https://maven.google.com/'
+            name 'Google'
+        }
     }
 }
 
 ext {
-    compileSdkVersion = 23
-    buildToolsVersion = "23.0.0"
+    compileSdkVersion = 27
+    buildToolsVersion = "27.0.3"
 
-    targetSdkVersion = 23
+    targetSdkVersion = 22
+    miniSdkVersion = 14
+
+    libVersion = "27.1.1"
 
     versionCode = 405001
     versionName = "0.4.5.1"

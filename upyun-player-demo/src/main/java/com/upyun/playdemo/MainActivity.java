@@ -20,7 +20,7 @@ public class MainActivity extends Activity {
     //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/upyunb";
 //    String path = "rtmp://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic";
 //    String path = "http://rtmptest.b0.upaiyun.com/live/default4demo33596ad21e01c659489973d38c4d2c56d9mic.m3u8";
-    String path = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+    String path = "rtmp://media3.sinovision.net:1935/live/livestream";
 //    String path = "/mnt/sdcard/storage/emulated/0/2651H.mp4";
 //    String path = "/mnt/sdcard/videotest/2641H.mp4";
 //    String path = "rtmp://testlivesdk.b0.upaiyun.com/live/myapp11";
