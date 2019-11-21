@@ -7,7 +7,7 @@ android-player-sdk 是一个适用于 Android 平台的影音播发器 SDK ，�
 ## 播放器功能特性
 
 	
-* 支持在线视频协议：`HLS`, `RTMP`, `HTTP-FLV` 等，支持 `HLS` 多种分辨率切换
+* 支持在线视频协议：`HLS`, `RTMP`, `HTTP-FLV` 等
 
 * 支持本地视频播放 （MP4、M4A、flv 等）
 
